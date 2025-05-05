@@ -1,6 +1,7 @@
 import streamlit as st
 import csv, io
 import pandas as pd
+from datetime import datetime  # ✅ Neu für Zeitstempel im Dateinamen
 
 # ——— Benutzer-Credentials aus Geheimnissen laden ———
 CREDENTIALS = st.secrets.get("credentials", {})
@@ -65,20 +66,24 @@ edited = st.data_editor(
     key="editor"
 )
 
-# Optionale manuelle Speicherung (kann auf Wunsch Button-basiert sein)
-# st.session_state.df = edited
-
-# CSV Export
+# ——— CSV Export mit Zeitstempel ———
 if st.button("📥 CSV erstellen und herunterladen"):
     buf = io.StringIO()
     writer = csv.writer(buf)
-    for _, row in edited.iterrows():  # nutze 'edited' statt session_state.df
+    for _, row in edited.iterrows():
         vor = replace_umlauts(row["Vorname"])
         nah = replace_umlauts(row["Nachname"])
         tel = format_phone(str(row["Telefonnummer"]))
         writer.writerow([vor, nah] + [""] * 16 + ["1", "4", "1", tel, "-1", "V2"])
     st.success("✅ CSV-Datei erfolgreich erstellt!")
+
+    # ✅ Dateiname mit aktuellem Datum und Uhrzeit
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
+    filename = f"Telefonbuch-{timestamp}.csv"
+
     st.download_button(
-        "Download CSV", data=buf.getvalue(),
-        file_name="telefonnummern.csv", mime="text/csv"
+        "Download CSV",
+        data=buf.getvalue(),
+        file_name=filename,
+        mime="text/csv"
     )
