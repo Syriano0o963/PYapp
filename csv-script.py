@@ -16,26 +16,26 @@ def replace_umlauts(text):
         text = text.replace(original, replaced)
     return text
 
-# ----------- Firmenlogo anzeigen ------------
-st.image("logo.png", width=200)  # Logo-Datei im gleichen Ordner
-
-st.title("📞 CSV-Telefonnummern-Generator")
-
-# ----------- SessionState zurücksetzen ------------
 def reset_app():
-    for key in st.session_state.keys():
+    # löscht alle User‑Eingaben aus session_state
+    for key in list(st.session_state.keys()):
         del st.session_state[key]
 
-# Reset-Button
-if st.button("🔁 Alles zurücksetzen"):
-    reset_app()
-    st.experimental_rerun()
+# ----------- UI ------------
+st.image("logo.png", width=200)
+st.title("📞 CSV‑Telefonnummern‑Generator")
 
-# ----------- Formular ------------
+# Reset‑Button bindet reset_app an on_click
+st.button("🔁 Alles zurücksetzen", on_click=reset_app)
+
 st.subheader("➕ Neue Telefonnummern eingeben")
 
+# Wir nutzen ein form, damit Enter zum Abschicken funktioniert
 with st.form("telefon_formular", clear_on_submit=False):
-    anzahl = st.number_input("Wie viele Einträge möchtest du erfassen?", min_value=1, max_value=100, step=1, key="anzahl")
+    anzahl = st.number_input(
+        "Wie viele Einträge möchtest du erfassen?",
+        min_value=1, max_value=100, step=1, key="anzahl"
+    )
 
     eintraege = []
     for i in range(anzahl):
@@ -43,31 +43,24 @@ with st.form("telefon_formular", clear_on_submit=False):
         vorname = st.text_input(f"Vorname #{i + 1}", key=f"vn_{i}")
         nachname = st.text_input(f"Nachname #{i + 1}", key=f"nn_{i}")
         telefon = st.text_input(f"Telefonnummer #{i + 1}", key=f"tel_{i}")
+        eintraege.append({"vorname": vorname, "nachname": nachname, "telefon": telefon})
 
-        eintraege.append({
-            "vorname": vorname,
-            "nachname": nachname,
-            "telefon": telefon
-        })
+    submitted = st.form_submit_button("📥 CSV‑Datei erstellen")
 
-    submitted = st.form_submit_button("📥 CSV-Datei erstellen")
-
-# ----------- CSV exportieren ------------
 if submitted:
+    # prüfen, ob alle Felder gefüllt sind
     if all(e["vorname"] and e["nachname"] and e["telefon"] for e in eintraege):
         output = io.StringIO()
         writer = csv.writer(output)
 
-        for eintrag in eintraege:
-            zeile = [
-                replace_umlauts(eintrag["vorname"]),
-                replace_umlauts(eintrag["nachname"])
-            ] + [""] * 16 + [
-                "1", "4", "1", format_phone(eintrag["telefon"]), "-1", "V2"
-            ]
+        for e in eintraege:
+            vor = replace_umlauts(e["vorname"])
+            nah = replace_umlauts(e["nachname"])
+            tel = format_phone(e["telefon"])
+            zeile = [vor, nah] + [""] * 16 + ["1", "4", "1", tel, "-1", "V2"]
             writer.writerow(zeile)
 
-        st.success("✅ CSV-Datei erfolgreich erstellt!")
+        st.success("✅ CSV‑Datei erfolgreich erstellt!")
         st.download_button(
             label="📄 CSV herunterladen",
             data=output.getvalue(),
