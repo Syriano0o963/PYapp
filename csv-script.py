@@ -11,61 +11,37 @@ def login():
     password = st.text_input("Passwort", type="password", key="login_pwd")
     if st.button("Anmelden"):
         if username in CREDENTIALS and CREDENTIALS[username] == password:
-            st.session_state.logged_in = True
-            st.experimental_rerun()
+            st.session_state["logged_in"] = True
+            st.session_state["user"] = username
         else:
             st.error("Ungültiger Benutzername oder Passwort.")
 
 # Initialisiere Login-Status
 if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
+    st.session_state["logged_in"] = False
 
-# Zeige Login, wenn nicht eingeloggt
-if not st.session_state.logged_in:
+# Wenn nicht eingeloggt, zeige Login und beende
+if not st.session_state["logged_in"]:
     login()
     st.stop()
 
-# ——— Haupt-Layout ———
+# ——— Ab hier geschützte App ———
+# Entferne Login-Inputs aus state
+for key in ["login_usr", "login_pwd"]:
+    if key in st.session_state:
+        del st.session_state[key]
+
+# ——— Layout ———
 st.set_page_config(page_title="CSV-Telefon-Generator", layout="wide")
-col_logo, col_title = st.columns([1, 4])
-with col_logo:
-    st.image("logo.png", width=120)
-with col_title:
+col1, col2 = st.columns([1, 4])
+with col1:
+    st.image("logo.png", width=150)
+with col2:
     st.markdown("# 📞 CSV-Telefonnummern-Generator")
-    st.markdown("Gib die Namen und Telefonnummern ein und lade die CSV direkt herunter.")
-st.divider()
+    st.markdown("Gib die Namen und Telefonnummern ein, und lade deine CSV herunter.")
+st.markdown("---")
 
-# ——— Eingabe-Steuerung in Sidebar ———
-st.sidebar.header("Einstellungen")
-anzahl = st.sidebar.number_input(
-    "Anzahl Einträge",
-    min_value=1,
-    max_value=50,
-    value=st.session_state.get("anzahl", 1),
-    step=1,
-    key="anzahl_input",
-    help="Wähle die Anzahl der Einträge"
-)
-st.session_state["anzahl"] = anzahl
-if st.sidebar.button("🔄 Alles zurücksetzen"):
-    for key in list(st.session_state.keys()):
-        if key.startswith(("vn_", "nn_", "tel_")) or key == "anzahl_input":
-            del st.session_state[key]
-    st.experimental_rerun()
-
-# ——— Formular mit Expandern für jede Zeile ———
-with st.form("telefon_form", clear_on_submit=False):
-    entries = []
-    for i in range(anzahl):
-        with st.expander(f"Eintrag {i+1}", expanded=True):
-            col1, col2, col3 = st.columns(3)
-            vor = col1.text_input("Vorname", key=f"vn_{i}")
-            nach = col2.text_input("Nachname", key=f"nn_{i}")
-            tel = col3.text_input("Telefonnummer", key=f"tel_{i}")
-            entries.append({"vor": vor, "nach": nach, "tel": tel})
-    submitted = st.form_submit_button("📥 CSV erstellen")
-
-# ——— CSV-Generierung ———
+# ——— Hilfsfunktionen ———
 def format_phone(phone):
     return "0" + phone if phone.startswith("0") else phone
 
@@ -74,20 +50,51 @@ def replace_umlauts(text):
         text = text.replace(o, r)
     return text
 
-if submitted:
-    if all(e["vor"] and e["nach"] and e["tel"] for e in entries):
-        buf = io.StringIO()
-        writer = csv.writer(buf)
-        for e in entries:
-            writer.writerow([
-                replace_umlauts(e["vor"]), replace_umlauts(e["nach"])
-            ] + [""]*16 + ["1", "4", "1", format_phone(e["tel"]), "-1", "V2"])
-        st.success("✅ CSV-Datei erstellt!")
-        st.download_button(
-            label="Download CSV",
-            data=buf.getvalue(),
-            file_name="telefonnummern.csv",
-            mime="text/csv"
-        )
-    else:
-        st.error("Bitte alle Felder ausfüllen.")
+# ——— Anzahl-Steuerung in Sidebar ———
+st.sidebar.header("Einstellungen")
+if "anzahl" not in st.session_state:
+    st.session_state["anzahl"] = 1
+
+st.sidebar.number_input(
+    "Anzahl Einträge",
+    min_value=1, max_value=100, step=1,
+    key="anzahl"
+)
+if st.sidebar.button("Alles zurücksetzen"):
+    # lösche dynamische Felder
+    for key in list(st.session_state.keys()):
+        if key.startswith(("vn_", "nn_", "tel_")):
+            del st.session_state[key]
+    st.session_state["anzahl"] = 1
+
+# ——— Tabelle editierbar ———
+rows = []
+for i in range(st.session_state["anzahl"]):
+    vor = st.session_state.get(f"vn_{i}", "")
+    nn = st.session_state.get(f"nn_{i}", "")
+    tel = st.session_state.get(f"tel_{i}", "")
+    rows.append({"Vorname": vor, "Nachname": nn, "Telefon": tel})
+df = st.experimental_data_editor(
+    data=rows,
+    num_rows="related",
+    key="editor"
+)
+
+# Schreibe zurück in session_state
+for i, row in enumerate(df):
+    st.session_state[f"vn_{i}"] = row["Vorname"]
+    st.session_state[f"nn_{i}"] = row["Nachname"]
+    st.session_state[f"tel_{i}"] = row["Telefon"]
+
+# ——— CSV Export ———
+st.markdown("---")
+if st.button("📥 CSV erstellen"):
+    output = io.StringIO()
+    writer = csv.writer(output)
+    for i in range(st.session_state["anzahl"]):
+        vor = replace_umlauts(st.session_state[f"vn_{i}"])
+        nah = replace_umlauts(st.session_state[f"nn_{i}"])
+        tel = format_phone(st.session_state[f"tel_{i}"])
+        writer.writerow([vor, nah] + [""]*16 + ["1","4","1", tel, "-1", "V2"])
+    st.success("✅ CSV-Datei erfolgreich erstellt!")
+    st.download_button("Download CSV", data=output.getvalue(), file_name="telefonnummern.csv", mime="text/csv")
