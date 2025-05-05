@@ -10,63 +10,57 @@ def replace_umlauts(text):
         text = text.replace(o, r)
     return text
 
-# ——— Session State für Einträge initialisieren ———
+# ——— Session State initialisieren ———
 if "anzahl" not in st.session_state:
-    st.session_state.anzahl = 1
-
-# ——— Callback-Funktionen ———
-def add_entry():
-    st.session_state.anzahl += 1
-
-def reset_entries():
-    # zurücksetzen auf 1 Eintrag und alle dynamischen Keys löschen
-    for key in list(st.session_state.keys()):
-        if key.startswith(("vn_", "nn_", "tel_")): 
-            del st.session_state[key]
-    st.session_state.anzahl = 1
+    st.session_state["anzahl"] = 1
 
 # ——— UI ———
 st.image("logo.png", width=200)
-st.title("📞 Telefonbuch‑Generator")
+st.title("📞 CSV‑Telefonnummern‑Generator")
 
-# Buttons für Neu/Plus
-col1, col2 = st.columns([1,1])
-col1.button("➕ Eintrag hinzufügen", on_click=add_entry)
-col2.button("🔄 Neu", on_click=reset_entries)
-
-st.markdown("---")
+# Steuerung der Anzahl mit Buttons und Input
+col1, col2, col3 = st.columns([1,2,1])
+with col1:
+    if st.button("➖", key="minus") and st.session_state["anzahl"] > 1:
+        st.session_state["anzahl"] -= 1
+with col2:
+    st.number_input(
+        "Anzahl Einträge",
+        min_value=1,
+        max_value=100,
+        step=1,
+        key="anzahl",
+        label_visibility="collapsed"
+    )
+with col3:
+    if st.button("➕", key="plus"):
+        st.session_state["anzahl"] += 1
 
 # Dynamische Eingabefelder
-for i in range(st.session_state.anzahl):
+entries = []
+for i in range(st.session_state["anzahl"]):
     st.subheader(f"Eintrag {i+1}")
-    st.text_input(f"Vorname #{i+1}", key=f"vn_{i}")
-    st.text_input(f"Nachname #{i+1}", key=f"nn_{i}")
-    st.text_input(f"Telefonnummer #{i+1}", key=f"tel_{i}")
+    vor = st.text_input(f"Vorname {i+1}", key=f"vn_{i}")
+    nah = st.text_input(f"Nachname {i+1}", key=f"nn_{i}")
+    tel = st.text_input(f"Telefon {i+1}", key=f"tel_{i}")
+    entries.append({"vor": vor, "nach": nah, "tel": tel})
 
-# CSV-Erstellung
-if st.button("📥 CSV-Datei erstellen"):
-    eintraege = []
-    # Sammle Daten
-    for i in range(st.session_state.anzahl):
-        vor = st.session_state.get(f"vn_{i}", "").strip()
-        nah = st.session_state.get(f"nn_{i}", "").strip()
-        tel = st.session_state.get(f"tel_{i}", "").strip()
-        if not (vor and nah and tel):
-            st.error(f"❗ Alle Felder in Eintrag {i+1} ausfüllen.")
-            st.stop()
-        eintraege.append({"vor": replace_umlauts(vor), "nah": replace_umlauts(nah), "tel": format_phone(tel)})
-
-    # Schreibe CSV
-    output = io.StringIO()
-    writer = csv.writer(output)
-    for e in eintraege:
-        row = [e["vor"], e["nah"]] + [""]*16 + ["1","4","1", e["tel"], "-1", "V2"]
-        writer.writerow(row)
-
-    st.success("✅ CSV-Datei erfolgreich erstellt!")
-    st.download_button(
-        label="📄 CSV herunterladen",
-        data=output.getvalue(),
-        file_name="telefonnummern.csv",
-        mime="text/csv"
-    )
+# CSV erstellen
+if st.button("📥 CSV erstellen"):
+    if all(e["vor"] and e["nach"] and e["tel"] for e in entries):
+        buf = io.StringIO()
+        writer = csv.writer(buf)
+        for e in entries:
+            writer.writerow([
+                replace_umlauts(e["vor"]),
+                replace_umlauts(e["nach"])
+            ] + [""] * 16 + ["1", "4", "1", format_phone(e["tel"]), "-1", "V2"])
+        st.success("✅ CSV-Datei erfolgreich erstellt!")
+        st.download_button(
+            label="📄 CSV herunterladen",
+            data=buf.getvalue(),
+            file_name="telefonnummern.csv",
+            mime="text/csv"
+        )
+    else:
+        st.error("❗ Bitte alle Felder ausfüllen.")
