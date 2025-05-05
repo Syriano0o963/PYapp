@@ -52,32 +52,19 @@ def replace_umlauts(text):
         text = text.replace(o, r)
     return text
 
-# ——— Initial-DF ———
+# ——— Initialisierung ———
 cols = ["Vorname", "Nachname", "Telefonnummer"]
 if "df" not in st.session_state:
-    st.session_state.df = pd.DataFrame([["", "", "1"]], columns=cols).astype("object")
+    st.session_state.df = pd.DataFrame([["", "", ""]], columns=cols)
 
-# Neue Zeile hinzufügen, wenn nötig
-prev_len = len(st.session_state.df)
+# ——— Interaktive Tabelle ———
+st.write("## Eingabefelder")
 edited = st.data_editor(
     st.session_state.df,
     num_rows="dynamic",
-    key="editor",
-    column_config={
-        "Vorname": st.column_config.TextColumn("Vorname"),
-        "Nachname": st.column_config.TextColumn("Nachname"),
-        "Telefonnummer": st.column_config.TextColumn("Telefonnummer"),
-    }
+    key="editor"
 )
-# Falls neue Zeile hinzugefügt wurde, automatische Nummer setzen
-if len(edited) > prev_len:
-    new_row_index = len(edited) - 1
-    edited.iloc[new_row_index, 2] = str(new_row_index + 1)  # Telefonnummer
-st.session_state.df = edited.astype("object")
-
-# ——— Tabelle anzeigen ———
-st.write("## Eingabefelder")
-st.dataframe(st.session_state.df)
+st.session_state.df = edited
 
 # ——— CSV Export ———
 if st.button("📥 CSV erstellen und herunterladen"):
