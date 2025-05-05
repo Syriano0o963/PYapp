@@ -11,7 +11,7 @@ def login():
     username = st.text_input("Benutzername", key="login_usr")
     password = st.text_input("Passwort", type="password", key="login_pwd")
     if st.button("Anmelden"):
-        if username in CREDENTIALS and CREDENTIALS[username] == password:
+        if username in CREDENTIALS and CREDENTIALS[username] == password:ALS[username] == password:
             st.session_state.logged_in = True
             st.session_state.user = username
             st.success(f"Willkommen, {username}!")
