@@ -64,13 +64,15 @@ edited = st.data_editor(
     num_rows="dynamic",
     key="editor"
 )
-st.session_state.df = edited
 
-# ——— CSV Export ———
+# Optionale manuelle Speicherung (kann auf Wunsch Button-basiert sein)
+# st.session_state.df = edited
+
+# CSV Export
 if st.button("📥 CSV erstellen und herunterladen"):
     buf = io.StringIO()
     writer = csv.writer(buf)
-    for _, row in st.session_state.df.iterrows():
+    for _, row in edited.iterrows():  # nutze 'edited' statt session_state.df
         vor = replace_umlauts(row["Vorname"])
         nah = replace_umlauts(row["Nachname"])
         tel = format_phone(str(row["Telefonnummer"]))
