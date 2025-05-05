@@ -23,7 +23,7 @@ def reset_app():
 
 # ----------- UI ------------
 st.image("logo.png", width=200)
-st.title("📞 CSV‑Telefonnummern‑Generator")
+st.title("📞 Telefonbuch‑Generator")
 
 # Reset‑Button bindet reset_app an on_click
 st.button("🔁 Alles zurücksetzen", on_click=reset_app)
