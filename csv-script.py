@@ -94,7 +94,7 @@ if st.button("📥 CSV erstellen und herunterladen"):
             except Exception as e:
                 tel = ""
         
-        writer.writerow([vor, nach] + [""] * 17 + ["1", "4", "1", tel, "-1", "V2"])
+        writer.writerow([vor, nach] + [""] * 14 + ["1", "4", "1", tel, "-1", "V2"])
     
     st.success("✅ CSV-Datei erfolgreich erstellt!")
 
