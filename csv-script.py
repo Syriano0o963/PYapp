@@ -2,6 +2,7 @@ import streamlit as st
 import csv
 import io
 
+# --- Funktionen ---
 def format_phone(phone):
     return "0" + phone if phone.startswith("0") else phone
 
@@ -15,12 +16,23 @@ def replace_umlauts(text):
         text = text.replace(original, replaced)
     return text
 
-st.title("📞 CSV-Telefonnummern-Generator")
+# --- Session State reset Funktion ---
+def reset_inputs():
+    for key in st.session_state.keys():
+        del st.session_state[key]
 
-anzahl = st.number_input("Wie viele Einträge möchtest du erfassen?", min_value=1, max_value=100, step=1)
+# --- UI-Start ---
+# ✅ Firmenlogo einfügen (Logo muss im gleichen Ordner sein, z. B. "logo.png")
+st.image("logo.png", width=200)  # <-- passe Pfad oder Größe ggf. an
+
+st.title("📞 Telefonbuch-Generator")
+
+# Eingabe: Anzahl der Einträge
+anzahl = st.number_input("Wie viele Einträge möchtest du erfassen?", min_value=1, max_value=100, step=1, key="anzahl_input")
 
 eintraege = []
 
+# Dynamische Eingabefelder
 for i in range(anzahl):
     st.subheader(f"Eintrag {i + 1}")
     vorname = st.text_input(f"Vorname #{i + 1}", key=f"vn_{i}")
@@ -34,8 +46,11 @@ for i in range(anzahl):
             "telefon": format_phone(telefon)
         })
 
-if len(eintraege) == anzahl and anzahl > 0:
-    if st.button("📥 CSV-Datei erstellen"):
+# Buttons
+col1, col2 = st.columns(2)
+
+with col1:
+    if len(eintraege) == anzahl and st.button("📥 CSV-Datei erstellen"):
         output = io.StringIO()
         writer = csv.writer(output)
 
@@ -50,3 +65,8 @@ if len(eintraege) == anzahl and anzahl > 0:
             file_name="telefonnummern.csv",
             mime="text/csv"
         )
+
+with col2:
+    if st.button("🔁 Alle Eingaben zurücksetzen"):
+        reset_inputs()
+        st.experimental_rerun()
