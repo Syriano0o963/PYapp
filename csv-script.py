@@ -5,18 +5,22 @@ import pandas as pd
 # ——— Benutzer-Credentials aus Geheimnissen laden ———
 CREDENTIALS = st.secrets.get("credentials", {})
 
-# ——— Authentifizierung ———
+# ——— Authentifizierung mit Spinner und sofortigem Refresh ———
 def login():
+    st.set_page_config(page_title="Login", layout="centered")
     st.title("🔒 Login")
     username = st.text_input("Benutzername", key="login_usr")
     password = st.text_input("Passwort", type="password", key="login_pwd")
+
     if st.button("Anmelden"):
-        if username in CREDENTIALS and CREDENTIALS[username] == password:
-            st.session_state.logged_in = True
-            st.session_state.user = username
-            st.success(f"Willkommen, {username}!")
-        else:
-            st.error("Ungültiger Benutzername oder Passwort.")
+        with st.spinner("Anmeldung wird überprüft..."):
+            if username in CREDENTIALS and CREDENTIALS[username] == password:
+                st.session_state.logged_in = True
+                st.session_state.user = username
+                st.success(f"Willkommen, {username}!")
+                st.experimental_rerun()
+            else:
+                st.error("❌ Ungültiger Benutzername oder Passwort.")
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
@@ -31,7 +35,7 @@ col1, col2 = st.columns([1, 4])
 with col1:
     st.image("logo.png", width=150)
 with col2:
-    st.markdown("# 📞Telefonbuch-Generator")
+    st.markdown("# 📞 Telefonbuch-Generator")
     st.markdown("Gib die Namen und Telefonnummern ein, und lade deine CSV herunter.")
 
 # ——— Sidebar-Steuerung ———
@@ -65,14 +69,13 @@ edited = st.data_editor(
     key="editor"
 )
 
-# Optionale manuelle Speicherung (kann auf Wunsch Button-basiert sein)
-# st.session_state.df = edited
+st.session_state.df = edited  # Speichere die aktuelle Bearbeitung
 
-# CSV Export
+# ——— CSV Export ———
 if st.button("📥 CSV erstellen und herunterladen"):
     buf = io.StringIO()
     writer = csv.writer(buf)
-    for _, row in edited.iterrows():  # nutze 'edited' statt session_state.df
+    for _, row in edited.iterrows():
         vor = replace_umlauts(row["Vorname"])
         nah = replace_umlauts(row["Nachname"])
         tel = format_phone(str(row["Telefonnummer"]))
