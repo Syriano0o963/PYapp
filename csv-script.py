@@ -3,9 +3,9 @@ import csv, io
 
 # ——— Benutzer-Credentials aus Geheimnissen laden ———
 # In .streamlit/secrets.toml oder über Streamlit Cloud Secrets konfigurieren:
- [credentials]
- abal = "Lassm!chnei02"
- hebe = "Lauertal13!"
+# [credentials]
+# abal = "Lassm!chnei02"
+# hebe = "Lauertal13!"
 CREDENTIALS = st.secrets.get("credentials", {})
 
 # ——— Authentifizierung ———
