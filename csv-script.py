@@ -1,6 +1,6 @@
 import streamlit as st
-import csv, io
-import pandas as pd
+import csv
+import io
 
 # ——— Benutzer-Credentials aus Geheimnissen laden ———
 CREDENTIALS = st.secrets.get("credentials", {})
@@ -11,17 +11,20 @@ def login():
     username = st.text_input("Benutzername", key="login_usr")
     password = st.text_input("Passwort", type="password", key="login_pwd")
     if st.button("Anmelden"):
-        if username in CREDENTIALS and CREDENTIALS[username] == password:ALS[username] == password:
-            st.session_state.logged_in = True
-            st.session_state.user = username
-            st.success(f"Willkommen, {username}!")
+        if username in CREDENTIALS and CREDENTIALS[username] == password:
+            st.session_state["logged_in"] = True
+            st.session_state["user"] = username
+            # nach erfolgreichem Login App neu rendern
+            st.experimental_rerun()
         else:
-            st.error("Ungültiger Benutzername oder Passwort.")
+            st.error("🚫 Ungültiger Benutzername oder Passwort.")
 
+# Initialisiere Login-Status
 if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
+    st.session_state["logged_in"] = False
 
-if not st.session_state.logged_in:
+# Wenn nicht eingeloggt, zeige Login und stoppe
+if not st.session_state["logged_in"]:
     login()
     st.stop()
 
@@ -34,7 +37,7 @@ with col2:
     st.markdown("# 📞 CSV-Telefonnummern-Generator")
     st.markdown("Gib die Namen und Telefonnummern ein, und lade deine CSV herunter.")
 
-# ——— Sidebar-Steuerung ———
+# Sidebar-Steuerung
 st.sidebar.header("Steuerung")
 # Reset-Button
 if st.sidebar.button("🔄 Alles zurücksetzen"):
@@ -42,21 +45,19 @@ if st.sidebar.button("🔄 Alles zurücksetzen"):
     for key in list(st.session_state.keys()):
         if key not in ("logged_in", "user"):
             del st.session_state[key]
-    st.session_state.logged_in = False
-    st.rerun()
+    st.session_state["logged_in"] = False
+    st.experimental_rerun()
 
-# Anzahl Einträge außerhalb des Formulars
-st.sidebar.subheader("Anzahl Einträge")
+# Anzahl Einträge
 if "anzahl" not in st.session_state:
-    st.session_state.anzahl = 1
-anzahl = st.sidebar.number_input(
+    st.session_state["anzahl"] = 1
+st.sidebar.subheader("Anzahl Einträge")
+st.session_state["anzahl"] = st.sidebar.number_input(
     "", min_value=1, max_value=100,
-    value=st.session_state.anzahl, step=1, key="anzahl_input",
-    on_change=lambda: None
+    value=st.session_state["anzahl"], step=1, key="anzahl_input"
 )
-st.session_state.anzahl = anzahl
 
-# ——— Tabelle zur Eingabe ———
+# ——— Hilfsfunktionen ———
 def format_phone(phone):
     return "0" + phone if phone.startswith("0") else phone
 
@@ -65,43 +66,43 @@ def replace_umlauts(text):
         text = text.replace(o, r)
     return text
 
-# DataFrame initialisieren oder aus session laden
-if "df" not in st.session_state:
-    cols = ["Vorname", "Nachname", "Telefonnummer"]
-    st.session_state.df = pd.DataFrame(
-        [["", "", ""] for _ in range(st.session_state.anzahl)],
-        columns=cols
-    )
-else:
-    df_existing = st.session_state.df
-    target = st.session_state.anzahl
-    if target > len(df_existing):
-        for _ in range(target - len(df_existing)):
-            df_existing.loc[len(df_existing)] = ["", "", ""]
-    elif target < len(df_existing):
-        df_existing = df_existing.iloc[:target]
-    st.session_state.df = df_existing
-
-# interaktive Tabelle
+# ——— Eingabefelder als Expander ———
 st.write("## Eingabefelder")
-edited = st.data_editor(
-    st.session_state.df,
-    num_rows="dynamic",
-    key="editor"
-)
-st.session_state.df = edited
 
-# CSV Export
+# Liste in session_state
+if "entries" not in st.session_state:
+    st.session_state["entries"] = [
+        {"Vorname": "", "Nachname": "", "Telefonnummer": ""}
+        for _ in range(st.session_state["anzahl"])
+    ]
+else:
+    # Liste anpassen bei Mengenänderung
+    entries = st.session_state["entries"]
+    target = st.session_state["anzahl"]
+    if target > len(entries):
+        for _ in range(target - len(entries)):
+            entries.append({"Vorname": "", "Nachname": "", "Telefonnummer": ""})
+    elif target < len(entries):
+        entries = entries[:target]
+    st.session_state["entries"] = entries
+
+# Expander pro Eintrag
+for i, entry in enumerate(st.session_state["entries"]):
+    with st.expander(f"Eintrag {i+1}", expanded=True):
+        cols = st.columns([3,3,4])
+        entry["Vorname"] = cols[0].text_input("Vorname", value=entry["Vorname"], key=f"vn_{i}")
+        entry["Nachname"] = cols[1].text_input("Nachname", value=entry["Nachname"], key=f"nn_{i}")
+        entry["Telefonnummer"] = cols[2].text_input("Telefonnummer", value=entry["Telefonnummer"], key=f"tel_{i}")
+
+# ——— CSV Export ———
 if st.button("📥 CSV erstellen und herunterladen"):
     buf = io.StringIO()
     writer = csv.writer(buf)
-    for _, row in st.session_state.df.iterrows():
-        vor = replace_umlauts(row["Vorname"])
-        nah = replace_umlauts(row["Nachname"])
-        tel = format_phone(str(row["Telefonnummer"]))
-        writer.writerow([
-            vor, nah
-        ] + [""] * 16 + ["1", "4", "1", tel, "-1", "V2"])
+    for entry in st.session_state["entries"]:
+        vor = replace_umlauts(entry["Vorname"])
+        nah = replace_umlauts(entry["Nachname"])
+        tel = format_phone(entry["Telefonnummer"])
+        writer.writerow([vor, nah] + [""]*16 + ["1", "4", "1", tel, "-1", "V2"])
     st.success("✅ CSV-Datei erfolgreich erstellt!")
     st.download_button(
         "Download CSV", data=buf.getvalue(),
