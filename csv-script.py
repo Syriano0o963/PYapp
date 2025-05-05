@@ -32,7 +32,7 @@ def reset_fields():
 
 # ——— UI ———
 st.image("logo.png", width=200)
-st.title("📞 CSV‑Generator mit dynamischer Anzahl")
+st.title("Telefonbuch Generator")
 
 # Reset-Button
 st.button("🔄 Neu", on_click=reset_fields)
