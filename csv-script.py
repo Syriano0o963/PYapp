@@ -1,71 +1,49 @@
 import streamlit as st
-import csv
-import io
+import csv, io
 
-# ----------- Hilfsfunktionen ------------
+# ——— Hilfsfunktionen ———
 def format_phone(phone):
-    return "0" + phone if phone.startswith("0") else phone
+    return "0"+phone if phone.startswith("0") else phone
 
 def replace_umlauts(text):
-    replacements = {
-        "ä": "ae", "ö": "oe", "ü": "ue",
-        "Ä": "Ae", "Ö": "Oe", "Ü": "Ue",
-        "ß": "ss"
-    }
-    for original, replaced in replacements.items():
-        text = text.replace(original, replaced)
+    for o, r in {"ä":"ae","ö":"oe","ü":"ue","Ä":"Ae","Ö":"Oe","Ü":"Ue","ß":"ss"}.items():
+        text = text.replace(o, r)
     return text
 
-def reset_app():
-    # löscht alle User‑Eingaben aus session_state
-    for key in list(st.session_state.keys()):
-        del st.session_state[key]
+# ——— Reset‑Callback ———
+def reset_and_refresh():
+    # alle user‑Keys löschen
+    for k in list(st.session_state.keys()):
+        del st.session_state[k]
+    # Seite neu laden
+    st.experimental_rerun()
 
-# ----------- UI ------------
+# ——— UI ———
 st.image("logo.png", width=200)
-st.title("📞 Telefonbuch‑Generator")
+st.title("📞 CSV‑Generator")
 
-# Reset‑Button bindet reset_app an on_click
-st.button("🔁 Alles zurücksetzen", on_click=reset_app)
+# ganz oben: “Neu”‑Button
+st.button("🔄 Neu", on_click=reset_and_refresh)
 
-st.subheader("➕ Neue Telefonnummern eingeben")
-
-# Wir nutzen ein form, damit Enter zum Abschicken funktioniert
-with st.form("telefon_formular", clear_on_submit=False):
-    anzahl = st.number_input(
-        "Wie viele Einträge möchtest du erfassen?",
-        min_value=1, max_value=100, step=1, key="anzahl"
-    )
-
+with st.form("form", clear_on_submit=False):
+    anzahl = st.number_input("Anzahl Einträge", min_value=1, max_value=100, step=1, key="anzahl")
     eintraege = []
     for i in range(anzahl):
-        st.markdown(f"**Eintrag {i + 1}**")
-        vorname = st.text_input(f"Vorname #{i + 1}", key=f"vn_{i}")
-        nachname = st.text_input(f"Nachname #{i + 1}", key=f"nn_{i}")
-        telefon = st.text_input(f"Telefonnummer #{i + 1}", key=f"tel_{i}")
-        eintraege.append({"vorname": vorname, "nachname": nachname, "telefon": telefon})
-
-    submitted = st.form_submit_button("📥 CSV‑Datei erstellen")
+        vor = st.text_input(f"Vorname {i+1}", key=f"vn{i}")
+        nach = st.text_input(f"Nachname {i+1}", key=f"nn{i}")
+        tel = st.text_input(f"Telefon {i+1}", key=f"tel{i}")
+        eintraege.append({"vor":vor,"nach":nach,"tel":tel})
+    submitted = st.form_submit_button("📥 CSV erstellen")
 
 if submitted:
-    # prüfen, ob alle Felder gefüllt sind
-    if all(e["vorname"] and e["nachname"] and e["telefon"] for e in eintraege):
-        output = io.StringIO()
-        writer = csv.writer(output)
-
+    if all(e["vor"] and e["nach"] and e["tel"] for e in eintraege):
+        buf=io.StringIO(); wr=csv.writer(buf)
         for e in eintraege:
-            vor = replace_umlauts(e["vorname"])
-            nah = replace_umlauts(e["nachname"])
-            tel = format_phone(e["telefon"])
-            zeile = [vor, nah] + [""] * 16 + ["1", "4", "1", tel, "-1", "V2"]
-            writer.writerow(zeile)
-
-        st.success("✅ CSV‑Datei erfolgreich erstellt!")
-        st.download_button(
-            label="📄 CSV herunterladen",
-            data=output.getvalue(),
-            file_name="telefonnummern.csv",
-            mime="text/csv"
-        )
+            wr.writerow([
+                replace_umlauts(e["vor"]), replace_umlauts(e["nach"])
+            ] + [""]*16 + ["1","4","1", format_phone(e["tel"]),"-1","V2"])
+        st.success("CSV fertig!")
+        st.download_button("Download CSV", data=buf.getvalue(),
+                           file_name="telefon.csv", mime="text/csv")
     else:
-        st.error("❗ Bitte alle Felder ausfüllen, bevor du die CSV erstellst.")
+        st.error("Bitte alle Felder ausfüllen.")
