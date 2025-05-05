@@ -36,23 +36,12 @@ with col2:
 
 # ——— Sidebar-Steuerung ———
 st.sidebar.header("Steuerung")
-# Reset-Button
 if st.sidebar.button("🔄 Alles zurücksetzen"):
     for key in list(st.session_state.keys()):
         if key not in ("logged_in", "user"):
             del st.session_state[key]
     st.session_state.logged_in = False
     st.rerun()
-
-# Anzahl Einträge außerhalb des Formulars
-st.sidebar.subheader("Anzahl Einträge")
-if "anzahl" not in st.session_state:
-    st.session_state.anzahl = 1
-anzahl = st.sidebar.number_input(
-    "", min_value=1, max_value=100,
-    value=st.session_state.anzahl, step=1, key="anzahl_input"
-)
-st.session_state.anzahl = anzahl
 
 # ——— Hilfsfunktionen ———
 def format_phone(phone):
@@ -63,32 +52,32 @@ def replace_umlauts(text):
         text = text.replace(o, r)
     return text
 
-# ——— DataFrame vorbereiten ———
+# ——— Initial-DF ———
 cols = ["Vorname", "Nachname", "Telefonnummer"]
-
 if "df" not in st.session_state:
-    st.session_state.df = pd.DataFrame(
-        [["", "", ""] for _ in range(st.session_state.anzahl)],
-        columns=cols
-    ).astype("object")
-else:
-    df_existing = st.session_state.df.astype("object")
-    target = st.session_state.anzahl
-    if target > len(df_existing):
-        for _ in range(target - len(df_existing)):
-            df_existing.loc[len(df_existing)] = ["", "", ""]
-    elif target < len(df_existing):
-        df_existing = df_existing.iloc[:target]
-    st.session_state.df = df_existing.astype("object")
+    st.session_state.df = pd.DataFrame([["", "", "1"]], columns=cols).astype("object")
 
-# ——— Interaktive Tabelle ———
-st.write("## Eingabefelder")
+# Neue Zeile hinzufügen, wenn nötig
+prev_len = len(st.session_state.df)
 edited = st.data_editor(
     st.session_state.df,
     num_rows="dynamic",
-    key="editor"
+    key="editor",
+    column_config={
+        "Vorname": st.column_config.TextColumn("Vorname"),
+        "Nachname": st.column_config.TextColumn("Nachname"),
+        "Telefonnummer": st.column_config.TextColumn("Telefonnummer"),
+    }
 )
+# Falls neue Zeile hinzugefügt wurde, automatische Nummer setzen
+if len(edited) > prev_len:
+    new_row_index = len(edited) - 1
+    edited.iloc[new_row_index, 2] = str(new_row_index + 1)  # Telefonnummer
 st.session_state.df = edited.astype("object")
+
+# ——— Tabelle anzeigen ———
+st.write("## Eingabefelder")
+st.dataframe(st.session_state.df)
 
 # ——— CSV Export ———
 if st.button("📥 CSV erstellen und herunterladen"):
@@ -98,9 +87,7 @@ if st.button("📥 CSV erstellen und herunterladen"):
         vor = replace_umlauts(row["Vorname"])
         nah = replace_umlauts(row["Nachname"])
         tel = format_phone(str(row["Telefonnummer"]))
-        writer.writerow([
-            vor, nah
-        ] + [""] * 16 + ["1", "4", "1", tel, "-1", "V2"])
+        writer.writerow([vor, nah] + [""] * 16 + ["1", "4", "1", tel, "-1", "V2"])
     st.success("✅ CSV-Datei erfolgreich erstellt!")
     st.download_button(
         "Download CSV", data=buf.getvalue(),
