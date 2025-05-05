@@ -74,7 +74,7 @@ if st.button("📥 CSV erstellen und herunterladen"):
         vor = replace_umlauts(row["Vorname"])
         nah = replace_umlauts(row["Nachname"])
         tel = format_phone(str(row["Telefonnummer"]))
-        writer.writerow([vor, nah] + [""] * 16 + ["1", "4", "1", tel, "-1", "V2"])
+        writer.writerow([vor, nah] + [""] * 17 + ["1", "4", "1", tel, "-1", "V2"])
     st.success("✅ CSV-Datei erfolgreich erstellt!")
 
     # ✅ Dateiname mit aktuellem Datum und Uhrzeit
