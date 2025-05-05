@@ -46,7 +46,10 @@ if st.sidebar.button("🔄 Alles zurücksetzen"):
 
 # ——— Hilfsfunktionen ———
 def format_phone(phone):
-    return "0" + phone if phone.startswith("0") else phone
+    phone = phone.strip().replace(" ", "").replace("-", "")
+    if not phone.startswith("0") and not phone.startswith("+"):
+        phone = "0" + phone
+    return phone
 
 def replace_umlauts(text):
     for o, r in {"ä": "ae", "ö": "oe", "ü": "ue", "Ä": "Ae", "Ö": "Oe", "Ü": "Ue", "ß": "ss"}.items():
@@ -70,11 +73,29 @@ edited = st.data_editor(
 if st.button("📥 CSV erstellen und herunterladen"):
     buf = io.StringIO()
     writer = csv.writer(buf)
+    
     for _, row in edited.iterrows():
-        vor = replace_umlauts(row["Vorname"])
-        nah = replace_umlauts(row["Nachname"])
-        tel = format_phone(str(row["Telefonnummer"]))
-        writer.writerow([vor, nah] + [""] * 14 + ["1", "4", "1", tel, "-1", "V2"])
+        vor = replace_umlauts(str(row["Vorname"]).strip())
+        nach = replace_umlauts(str(row["Nachname"]).strip())
+        
+        raw_tel = row["Telefonnummer"]
+        if pd.isna(raw_tel) or str(raw_tel).strip() == "":
+            tel = ""
+        else:
+            try:
+                # Konvertiere float oder int zu int, dann zu String (entfernt Nachkommastellen)
+                tel_str = str(int(float(raw_tel))) if isinstance(raw_tel, (float, int)) else str(raw_tel)
+                tel = format_phone(tel_str)
+                
+                # Optional: internationale Schreibweise (z. B. +49 statt 0)
+                # if tel.startswith("0"):
+                #     tel = "+49" + tel[1:]
+                
+            except Exception as e:
+                tel = ""
+        
+        writer.writerow([vor, nach] + [""] * 13 + ["1", "4", "1", tel, "-1", "V2"])
+    
     st.success("✅ CSV-Datei erfolgreich erstellt!")
 
     # ✅ Dateiname mit aktuellem Datum und Uhrzeit
