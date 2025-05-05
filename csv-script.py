@@ -31,7 +31,7 @@ col1, col2 = st.columns([1, 4])
 with col1:
     st.image("logo.png", width=150)
 with col2:
-    st.markdown("# 📞 CSV-Telefonnummern-Generator")
+    st.markdown("# 📞Telefonbuch-Generator")
     st.markdown("Gib die Namen und Telefonnummern ein, und lade deine CSV herunter.")
 
 # ——— Sidebar-Steuerung ———
