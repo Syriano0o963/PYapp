@@ -29,7 +29,7 @@ if not st.session_state.logged_in:
 st.set_page_config(page_title="CSV-Telefon-Generator", layout="wide")
 col1, col2 = st.columns([1, 4])
 with col1:
-    st.image("logo.png", width=150)
+    st.image("logo-without-bg.png", width=150)
 with col2:
     st.markdown("# 📞Telefonbuch-Generator")
     st.markdown("Gib die Namen und Telefonnummern ein, und lade deine CSV herunter.")
