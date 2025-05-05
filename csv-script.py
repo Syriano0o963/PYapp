@@ -14,6 +14,7 @@ def login():
         if username in CREDENTIALS and CREDENTIALS[username] == password:
             st.session_state.logged_in = True
             st.session_state.user = username
+            st.success(f"Willkommen, {username}!")
         else:
             st.error("Ungültiger Benutzername oder Passwort.")
 
@@ -33,6 +34,7 @@ with col2:
     st.markdown("# 📞 CSV-Telefonnummern-Generator")
     st.markdown("Gib die Namen und Telefonnummern ein, und lade deine CSV herunter.")
 
+# ——— Sidebar-Steuerung ———
 st.sidebar.header("Steuerung")
 # Reset-Button
 if st.sidebar.button("🔄 Alles zurücksetzen"):
@@ -41,13 +43,18 @@ if st.sidebar.button("🔄 Alles zurücksetzen"):
         if key not in ("logged_in", "user"):
             del st.session_state[key]
     st.session_state.logged_in = False
-    st.experimental_rerun()
+    st.rerun()
 
-# Anzahl Einträge
+# Anzahl Einträge außerhalb des Formulars
 st.sidebar.subheader("Anzahl Einträge")
 if "anzahl" not in st.session_state:
     st.session_state.anzahl = 1
-st.session_state.anzahl = st.sidebar.number_input("", min_value=1, max_value=100, value=st.session_state.anzahl, step=1, key="anzahl_input")
+anzahl = st.sidebar.number_input(
+    "", min_value=1, max_value=100,
+    value=st.session_state.anzahl, step=1, key="anzahl_input",
+    on_change=lambda: None
+)
+st.session_state.anzahl = anzahl
 
 # ——— Tabelle zur Eingabe ———
 def format_phone(phone):
@@ -61,13 +68,14 @@ def replace_umlauts(text):
 # DataFrame initialisieren oder aus session laden
 if "df" not in st.session_state:
     cols = ["Vorname", "Nachname", "Telefonnummer"]
-    st.session_state.df = pd.DataFrame([["", "", ""] for _ in range(st.session_state.anzahl)], columns=cols)
+    st.session_state.df = pd.DataFrame(
+        [["", "", ""] for _ in range(st.session_state.anzahl)],
+        columns=cols
+    )
 else:
-    # falls Anzahl geändert, Zeilen anpassen
     df_existing = st.session_state.df
     target = st.session_state.anzahl
     if target > len(df_existing):
-        # hinzufügen
         for _ in range(target - len(df_existing)):
             df_existing.loc[len(df_existing)] = ["", "", ""]
     elif target < len(df_existing):
@@ -76,7 +84,11 @@ else:
 
 # interaktive Tabelle
 st.write("## Eingabefelder")
-edited = st.data_editor(st.session_state.df, num_rows="dynamic", key="editor")
+edited = st.data_editor(
+    st.session_state.df,
+    num_rows="dynamic",
+    key="editor"
+)
 st.session_state.df = edited
 
 # CSV Export
@@ -87,6 +99,11 @@ if st.button("📥 CSV erstellen und herunterladen"):
         vor = replace_umlauts(row["Vorname"])
         nah = replace_umlauts(row["Nachname"])
         tel = format_phone(str(row["Telefonnummer"]))
-        writer.writerow([vor, nah] + [""] * 16 + ["1", "4", "1", tel, "-1", "V2"])
+        writer.writerow([
+            vor, nah
+        ] + [""] * 16 + ["1", "4", "1", tel, "-1", "V2"])
     st.success("✅ CSV-Datei erfolgreich erstellt!")
-    st.download_button("Download CSV", data=buf.getvalue(), file_name="telefonnummern.csv", mime="text/csv")
+    st.download_button(
+        "Download CSV", data=buf.getvalue(),
+        file_name="telefonnummern.csv", mime="text/csv"
+    )
