@@ -1,9 +1,9 @@
 import streamlit as st
 import csv, io
 import pandas as pd
-from datetime import datetime  # Neu für Zeitstempel im Dateinamen
+from datetime import datetime  # ✅ Neu für Zeitstempel im Dateinamen
 
-# ——— Benutzer‑Credentials aus Geheimnissen laden ———
+# ——— Benutzer-Credentials aus Geheimnissen laden ———
 CREDENTIALS = st.secrets.get("credentials", {})
 
 # ——— Authentifizierung ———
@@ -26,16 +26,16 @@ if not st.session_state.logged_in:
     login()
     st.stop()
 
-# ——— App‑Inhalt nach Login ———
-st.set_page_config(page_title="CSV‑Telefon‑Generator", layout="wide")
+# ——— App-Inhalt nach Login ———
+st.set_page_config(page_title="CSV-Telefon-Generator", layout="wide")
 col1, col2 = st.columns([1, 4])
 with col1:
     st.image("logo-without-bg.png", width=150)
 with col2:
-    st.markdown("# 📞 Telefonbuch‑Generator")
-    st.markdown("Gib die Namen und Telefonnummern ein und lade deine CSV herunter.")
+    st.markdown("# 📞Telefonbuch-Generator")
+    st.markdown("Gib die Namen und Telefonnummern ein, und lade deine CSV herunter.")
 
-# ——— Sidebar‑Steuerung ———
+# ——— Sidebar-Steuerung ———
 st.sidebar.header("Steuerung")
 if st.sidebar.button("🔄 Alles zurücksetzen"):
     for key in list(st.session_state.keys()):
@@ -66,32 +66,18 @@ edited = st.data_editor(
     key="editor"
 )
 
-# ——— CSV Export mit Header und Zeitstempel ———
+# ——— CSV Export mit Zeitstempel ———
 if st.button("📥 CSV erstellen und herunterladen"):
     buf = io.StringIO()
     writer = csv.writer(buf)
-
-    # ——— 1) Header‑Zeile schreiben ———
-    writer.writerow(
-        ["Vorname", "Nachname"]    # 2 Spalten
-        + [""] * 16                # 16 leere Spalten
-        + ["1", "4", "1", "Telefonnummer", "-1", "V2"]
-    )
-
-    # ——— 2) Datensätze schreiben ———
     for _, row in edited.iterrows():
         vor = replace_umlauts(row["Vorname"])
         nah = replace_umlauts(row["Nachname"])
         tel = format_phone(str(row["Telefonnummer"]))
-        writer.writerow(
-            [vor, nah]
-            + [""] * 16
-            + ["1", "4", "1", tel, "-1", "V2"]
-        )
-
+        writer.writerow([vor, nah] + [""] * 14 + ["1", "4", "1", tel, "-1", "V2"])
     st.success("✅ CSV-Datei erfolgreich erstellt!")
 
-    # ——— Dateiname mit aktuellem Datum und Uhrzeit ———
+    # ✅ Dateiname mit aktuellem Datum und Uhrzeit
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
     filename = f"Telefonbuch-{timestamp}.csv"
 
