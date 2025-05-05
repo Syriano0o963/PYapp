@@ -45,7 +45,7 @@ if st.sidebar.button("🔄 Alles zurücksetzen"):
 
 # ——— Hilfsfunktionen ———
 def format_phone(phone):
-    return "0" + phone if not phone.startswith("0") else phone
+    return "0" + phone if phone.startswith("0") else phone
 
 def replace_umlauts(text):
     for o, r in {"ä": "ae", "ö": "oe", "ü": "ue", "Ä": "Ae", "Ö": "Oe", "Ü": "Ue", "ß": "ss"}.items():
