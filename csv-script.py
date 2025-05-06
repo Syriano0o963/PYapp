@@ -1,7 +1,7 @@
 import streamlit as st
 import csv, io
 import pandas as pd
-from datetime import datetime  # ✅ Neu für Zeitstempel im Dateinamen
+from datetime import datetime
 
 # ——— Benutzer-Credentials aus Geheimnissen laden ———
 CREDENTIALS = st.secrets.get("credentials", {})
@@ -53,10 +53,22 @@ def replace_umlauts(text):
         text = text.replace(o, r)
     return text
 
+def has_whitespace(text):
+    return " " in text.strip()
+
 # ——— Initialisierung ———
 cols = ["Vorname", "Nachname", "Telefonnummer"]
 if "df" not in st.session_state:
     st.session_state.df = pd.DataFrame([["", "", ""]], columns=cols)
+
+# ——— Hinweisbox mit Icon ———
+with st.container():
+    st.markdown(
+        '<div style="background-color: #fffbe6; padding: 10px; border-left: 6px solid #f1c40f; margin-bottom: 15px;">'
+        '💡 <strong>Hinweis:</strong> Bitte keine Leerzeichen in Vor- oder Nachnamen verwenden. Verwende stattdessen Bindestriche (-) oder Unterstriche (_).'
+        '</div>',
+        unsafe_allow_html=True
+    )
 
 # ——— Interaktive Tabelle ———
 st.write("## Eingabefelder")
@@ -66,18 +78,31 @@ edited = st.data_editor(
     key="editor"
 )
 
-# ——— CSV Export mit Zeitstempel ———
-if st.button("📥 CSV erstellen und herunterladen"):
+# ——— Validierung ———
+errors = []
+for i, row in edited.iterrows():
+    if has_whitespace(str(row["Vorname"])):
+        errors.append(f"Zeile {i+1}: Vorname enthält Leerzeichen.")
+    if has_whitespace(str(row["Nachname"])):
+        errors.append(f"Zeile {i+1}: Nachname enthält Leerzeichen.")
+
+# ——— Fehler anzeigen ———
+if errors:
+    st.error("❌ Bitte korrigiere die folgenden Eingaben, bevor du fortfährst:")
+    for msg in errors:
+        st.markdown(f"- {msg}")
+
+# ——— CSV Export ———
+if st.button("📥 CSV erstellen und herunterladen", disabled=bool(errors)):
     buf = io.StringIO()
     writer = csv.writer(buf)
     for _, row in edited.iterrows():
-        vor = replace_umlauts(row["Vorname"])
-        nah = replace_umlauts(row["Nachname"])
+        vor = replace_umlauts(str(row["Vorname"]))
+        nah = replace_umlauts(str(row["Nachname"]))
         tel = format_phone(str(row["Telefonnummer"]))
         writer.writerow([vor, nah] + [""] * 15 + ["1", "4", "1", tel, "-1", "V2"])
     st.success("✅ CSV-Datei erfolgreich erstellt!")
 
-    # ✅ Dateiname mit aktuellem Datum und Uhrzeit
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
     filename = f"Telefonbuch-{timestamp}.csv"
 
