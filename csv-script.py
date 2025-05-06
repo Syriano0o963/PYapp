@@ -28,7 +28,7 @@ if not st.session_state.logged_in:
     login()
     st.stop()
 
-# ——— App-Inhalt nach Login ———
+# ——— App-Einstellungen ———
 st.set_page_config(page_title="CSV-Telefon-Generator", layout="wide")
 col1, col2 = st.columns([1, 4])
 with col1:
@@ -64,7 +64,7 @@ cols = ["Vorname", "Nachname", "Telefonnummer"]
 if "df" not in st.session_state:
     st.session_state.df = pd.DataFrame([["", "", ""]], columns=cols)
 
-# ——— Hinweisbox mit Glühbirne ———
+# ——— Hinweisbox ———
 with st.container():
     st.markdown(
         '<div style="background-color: #fffbe6; padding: 10px; border-left: 6px solid #f1c40f; margin-bottom: 15px;">'
@@ -74,14 +74,21 @@ with st.container():
         unsafe_allow_html=True
     )
 
-# ——— CSV Upload ———
+# ——— CSV Upload mit Encoding-Erkennung ———
 uploaded_file = st.file_uploader("📄 CSV-Datei hochladen", type=["csv"], key="csv_upload")
 if uploaded_file:
-    df = pd.read_csv(uploaded_file)
+    try:
+        df = pd.read_csv(uploaded_file, encoding="utf-8")
+    except UnicodeDecodeError:
+        try:
+            df = pd.read_csv(uploaded_file, encoding="latin1")
+        except Exception as e:
+            st.error(f"❌ Fehler beim Lesen der CSV-Datei: {e}")
+            st.stop()
     st.session_state.df = df
     st.success("✅ CSV-Datei erfolgreich hochgeladen!")
 
-# ——— Word/Excel Upload ———
+# ——— Word oder Excel Upload ———
 st.write("## 📂 Word/Excel-Datei hochladen")
 upload_doc = st.file_uploader("Word (.docx) oder Excel (.xlsx)", type=["docx", "xlsx"], key="file_upload_docx_xlsx")
 if upload_doc:
@@ -89,8 +96,8 @@ if upload_doc:
         new_rows = []
         if upload_doc.name.endswith(".xlsx"):
             df_upload = pd.read_excel(upload_doc)
-            if all(col in df_upload.columns for col in ["Vorname", "Nachname", "Telefonnummer"]):
-                new_rows = df_upload[["Vorname", "Nachname", "Telefonnummer"]].values.tolist()
+            if all(col in df_upload.columns for col in cols):
+                new_rows = df_upload[cols].values.tolist()
             else:
                 st.warning("⚠️ Excel-Datei muss die Spalten 'Vorname', 'Nachname' und 'Telefonnummer' enthalten.")
         elif upload_doc.name.endswith(".docx"):
@@ -101,11 +108,10 @@ if upload_doc:
                 if len(parts) >= 3:
                     vorname, nachname, telefon = parts[0], parts[1], parts[2]
                     new_rows.append([vorname, nachname, telefon])
-
         if new_rows:
             df_new = pd.DataFrame(new_rows, columns=cols)
             st.session_state.df = pd.concat([st.session_state.df, df_new], ignore_index=True)
-            st.success(f"✅ {len(new_rows)} Zeile(n) aus Datei erfolgreich übernommen.")
+            st.success(f"✅ {len(new_rows)} Zeile(n) aus Datei übernommen.")
         else:
             st.info("ℹ️ Keine gültigen Daten erkannt.")
     except Exception as e:
@@ -139,11 +145,11 @@ for i, row in edited.iterrows():
 
 # ——— Fehleranzeige ———
 if errors:
-    st.error("❌ Bitte korrigiere die folgenden Eingaben, bevor du fortfährst:")
+    st.error("❌ Bitte korrigiere die folgenden Eingaben:")
     for msg in errors:
         st.markdown(f"- {msg}")
 
-# ——— CSV Export mit Zeitstempel ———
+# ——— CSV Export ———
 if st.button("📥 CSV erstellen und herunterladen", disabled=bool(errors)):
     buf = io.StringIO()
     writer = csv.writer(buf)
@@ -164,12 +170,12 @@ if st.button("📥 CSV erstellen und herunterladen", disabled=bool(errors)):
         mime="text/csv"
     )
 
-# ——— UI-Anpassung (Vollbild & Auge verstecken) ———
+# ——— UI-Anpassung ———
 st.markdown(
     """
     <style>
-    .css-18e3th9 { display: none; }  /* Vollbild-Button */
-    .css-1kyxreq { display: none; }  /* Auge-Icon Passwortfeld */
+    .css-18e3th9 { display: none; }
+    .css-1kyxreq { display: none; }
     </style>
     """,
     unsafe_allow_html=True
