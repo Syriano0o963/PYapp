@@ -2,6 +2,7 @@ import streamlit as st
 import csv, io
 import pandas as pd
 from datetime import datetime
+import re
 
 # ——— Benutzer-Credentials aus Geheimnissen laden ———
 CREDENTIALS = st.secrets.get("credentials", {})
@@ -54,18 +55,19 @@ def replace_umlauts(text):
     return text
 
 def has_whitespace(text):
-    return " " in text.strip()
+    return bool(re.search(r"\s", text))  # prüft auf beliebige Leerzeichen, Tabs, etc.
 
 # ——— Initialisierung ———
 cols = ["Vorname", "Nachname", "Telefonnummer"]
 if "df" not in st.session_state:
     st.session_state.df = pd.DataFrame([["", "", ""]], columns=cols)
 
-# ——— Hinweisbox mit Icon ———
+# ——— Hinweisbox mit Glühbirne ———
 with st.container():
     st.markdown(
         '<div style="background-color: #fffbe6; padding: 10px; border-left: 6px solid #f1c40f; margin-bottom: 15px;">'
-        '💡 <strong>Hinweis:</strong> Bitte keine Leerzeichen in Vor- oder Nachnamen verwenden. Verwende stattdessen Bindestriche (-) oder Unterstriche (_).'
+        '💡 <strong>Hinweis:</strong> Vorname, Nachname und Telefonnummer dürfen keine Leerzeichen enthalten. '
+        'Verwende stattdessen Bindestriche (-) oder Unterstriche (_).'
         '</div>',
         unsafe_allow_html=True
     )
@@ -82,17 +84,19 @@ edited = st.data_editor(
 errors = []
 for i, row in edited.iterrows():
     if has_whitespace(str(row["Vorname"])):
-        errors.append(f"Zeile {i+1}: Vorname enthält Leerzeichen.")
+        errors.append(f"Zeile {i+1}: Vorname darf keine Leerzeichen enthalten.")
     if has_whitespace(str(row["Nachname"])):
-        errors.append(f"Zeile {i+1}: Nachname enthält Leerzeichen.")
+        errors.append(f"Zeile {i+1}: Nachname darf keine Leerzeichen enthalten.")
+    if has_whitespace(str(row["Telefonnummer"])):
+        errors.append(f"Zeile {i+1}: Telefonnummer darf keine Leerzeichen enthalten.")
 
-# ——— Fehler anzeigen ———
+# ——— Fehleranzeige ———
 if errors:
     st.error("❌ Bitte korrigiere die folgenden Eingaben, bevor du fortfährst:")
     for msg in errors:
         st.markdown(f"- {msg}")
 
-# ——— CSV Export ———
+# ——— CSV Export mit Zeitstempel ———
 if st.button("📥 CSV erstellen und herunterladen", disabled=bool(errors)):
     buf = io.StringIO()
     writer = csv.writer(buf)
