@@ -73,21 +73,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# ——— CSV Upload ———
-uploaded_file = st.file_uploader("📄 CSV-Datei hochladen", type=["csv"], key="csv_upload")
-if uploaded_file:
-    try:
-        df = pd.read_csv(uploaded_file, encoding='utf-8')
-        st.session_state.df = df
-        st.success("✅ CSV-Datei erfolgreich hochgeladen!")
-    except UnicodeDecodeError:
-        try:
-            df = pd.read_csv(uploaded_file, encoding='latin1')
-            st.session_state.df = df
-            st.success("✅ CSV-Datei erfolgreich mit ISO-8859-1 (latin1) geöffnet!")
-        except Exception as e:
-            st.error(f"❌ Fehler beim Laden der CSV-Datei: {e}")
-
 # ——— Word/Excel Upload ———
 st.write("## 📂 Word/Excel-Datei hochladen")
 upload_doc = st.file_uploader("Word (.docx) oder Excel (.xlsx)", type=["docx", "xlsx"], key="file_upload_docx_xlsx")
@@ -134,6 +119,11 @@ if st.button("➕ Zeile hinzufügen"):
 if st.button("➖ Letzte Zeile löschen"):
     if len(st.session_state.df) > 1:
         st.session_state.df = st.session_state.df[:-1]
+
+# ——— Tabelle leeren ———
+if st.button("🧹 Tabelle leeren"):
+    st.session_state.df = pd.DataFrame([["", "", ""]], columns=cols)
+    st.success("✅ Tabelle wurde erfolgreich geleert.")
 
 # ——— Validierung ———
 errors = []
