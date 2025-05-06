@@ -3,6 +3,7 @@ import csv, io
 import pandas as pd
 from datetime import datetime
 import re
+from docx import Document
 
 # ——— Benutzer-Credentials aus Geheimnissen laden ———
 CREDENTIALS = st.secrets.get("credentials", {})
@@ -55,8 +56,8 @@ def replace_umlauts(text):
     return text
 
 def find_whitespace_position(text):
-    match = re.search(r"\s", text)  # prüft auf Leerzeichen
-    return match.start() if match else -1  # Gibt die Position des ersten Leerzeichens zurück, sonst -1
+    match = re.search(r"\s", text)
+    return match.start() if match else -1
 
 # ——— Initialisierung ———
 cols = ["Vorname", "Nachname", "Telefonnummer"]
@@ -73,38 +74,68 @@ with st.container():
         unsafe_allow_html=True
     )
 
-# ——— Drag-and-Drop für CSV-Dateien ———
-uploaded_file = st.file_uploader("Wähle eine CSV-Datei zum Hochladen", type=["csv"])
+# ——— CSV Upload ———
+uploaded_file = st.file_uploader("📄 CSV-Datei hochladen", type=["csv"], key="csv_upload")
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
-    st.session_state.df = df  # Läd die hochgeladene CSV in das DataFrame
-    st.success("CSV-Datei erfolgreich hochgeladen!")
+    st.session_state.df = df
+    st.success("✅ CSV-Datei erfolgreich hochgeladen!")
+
+# ——— Word/Excel Upload ———
+st.write("## 📂 Word/Excel-Datei hochladen")
+upload_doc = st.file_uploader("Word (.docx) oder Excel (.xlsx)", type=["docx", "xlsx"], key="file_upload_docx_xlsx")
+if upload_doc:
+    try:
+        new_rows = []
+        if upload_doc.name.endswith(".xlsx"):
+            df_upload = pd.read_excel(upload_doc)
+            if all(col in df_upload.columns for col in ["Vorname", "Nachname", "Telefonnummer"]):
+                new_rows = df_upload[["Vorname", "Nachname", "Telefonnummer"]].values.tolist()
+            else:
+                st.warning("⚠️ Excel-Datei muss die Spalten 'Vorname', 'Nachname' und 'Telefonnummer' enthalten.")
+        elif upload_doc.name.endswith(".docx"):
+            doc = Document(upload_doc)
+            for para in doc.paragraphs:
+                line = para.text.strip()
+                parts = line.split()
+                if len(parts) >= 3:
+                    vorname, nachname, telefon = parts[0], parts[1], parts[2]
+                    new_rows.append([vorname, nachname, telefon])
+
+        if new_rows:
+            df_new = pd.DataFrame(new_rows, columns=cols)
+            st.session_state.df = pd.concat([st.session_state.df, df_new], ignore_index=True)
+            st.success(f"✅ {len(new_rows)} Zeile(n) aus Datei erfolgreich übernommen.")
+        else:
+            st.info("ℹ️ Keine gültigen Daten erkannt.")
+    except Exception as e:
+        st.error(f"❌ Fehler beim Verarbeiten der Datei: {e}")
 
 # ——— Interaktive Tabelle ———
 st.write("## Eingabefelder")
 edited = st.data_editor(
     st.session_state.df,
-    num_rows="dynamic",  # Beibehalten der dynamischen Zeilenanzahl
+    num_rows="dynamic",
     key="editor"
 )
 
 # ——— Zeilen hinzufügen/löschen ———
-if st.button("Zeile hinzufügen"):
+if st.button("➕ Zeile hinzufügen"):
     new_row = pd.DataFrame([["", "", ""]], columns=cols)
     st.session_state.df = pd.concat([st.session_state.df, new_row], ignore_index=True)
 
-if st.button("Letzte Zeile löschen"):
-    if len(st.session_state.df) > 1:  # Verhindert, dass die letzte Zeile gelöscht wird
+if st.button("➖ Letzte Zeile löschen"):
+    if len(st.session_state.df) > 1:
         st.session_state.df = st.session_state.df[:-1]
 
 # ——— Validierung ———
 errors = []
 for i, row in edited.iterrows():
-    for column in ["Vorname", "Nachname", "Telefonnummer"]:
+    for column in cols:
         text = str(row[column])
-        whitespace_position = find_whitespace_position(text)
-        if whitespace_position != -1:  # Wenn ein Leerzeichen gefunden wurde
-            errors.append(f"Zeile {i+1}, Spalte '{column}': Leerzeichen an Position {whitespace_position+1}.")
+        pos = find_whitespace_position(text)
+        if pos != -1:
+            errors.append(f"Zeile {i+1}, Spalte '{column}': Leerzeichen an Position {pos+1}.")
 
 # ——— Fehleranzeige ———
 if errors:
@@ -127,19 +158,18 @@ if st.button("📥 CSV erstellen und herunterladen", disabled=bool(errors)):
     filename = f"Telefonbuch-{timestamp}.csv"
 
     st.download_button(
-        "Download CSV",
+        "⬇️ Download CSV",
         data=buf.getvalue(),
         file_name=filename,
         mime="text/csv"
     )
 
-# ——— Custom CSS zur UI-Anpassung (Vollbild-Button und Auge-Icon ausblenden) ———
+# ——— UI-Anpassung (Vollbild & Auge verstecken) ———
 st.markdown(
     """
     <style>
-    /* Verstecke den Vollbild-Button und das Auge-Icon in der oberen rechten Ecke */
-    .css-18e3th9 { display: none; } /* Vollbild-Button */
-    .css-1kyxreq { display: none; } /* Auge-Icon für das Passwortfeld */
+    .css-18e3th9 { display: none; }  /* Vollbild-Button */
+    .css-1kyxreq { display: none; }  /* Auge-Icon Passwortfeld */
     </style>
     """,
     unsafe_allow_html=True
