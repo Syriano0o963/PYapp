@@ -73,6 +73,13 @@ with st.container():
         unsafe_allow_html=True
     )
 
+# ——— Drag-and-Drop für CSV-Dateien ———
+uploaded_file = st.file_uploader("Wähle eine CSV-Datei zum Hochladen", type=["csv"])
+if uploaded_file:
+    df = pd.read_csv(uploaded_file)
+    st.session_state.df = df  # Läd die hochgeladene CSV in das DataFrame
+    st.success("CSV-Datei erfolgreich hochgeladen!")
+
 # ——— Interaktive Tabelle ———
 st.write("## Eingabefelder")
 edited = st.data_editor(
@@ -80,6 +87,15 @@ edited = st.data_editor(
     num_rows="dynamic",  # Beibehalten der dynamischen Zeilenanzahl
     key="editor"
 )
+
+# ——— Zeilen hinzufügen/löschen ———
+if st.button("Zeile hinzufügen"):
+    new_row = pd.DataFrame([["", "", ""]], columns=cols)
+    st.session_state.df = pd.concat([st.session_state.df, new_row], ignore_index=True)
+
+if st.button("Letzte Zeile löschen"):
+    if len(st.session_state.df) > 1:  # Verhindert, dass die letzte Zeile gelöscht wird
+        st.session_state.df = st.session_state.df[:-1]
 
 # ——— Validierung ———
 errors = []
