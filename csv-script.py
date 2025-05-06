@@ -1,5 +1,6 @@
 import streamlit as st
-import csv, io
+import csv
+import io
 import pandas as pd
 from datetime import datetime
 import re
@@ -111,68 +112,26 @@ edited = st.data_editor(
     key="editor"
 )
 
-# ——— Bestätigung zum Hinzufügen oder Löschen ———
-def show_confirmation(action):
-    if action == "hinzufügen":
-        st.session_state.confirm_add = True
-        st.session_state.confirm_delete = False
-    elif action == "löschen":
-        st.session_state.confirm_delete = True
-        st.session_state.confirm_add = False
+# ——— Bestätigung zum Leeren der Tabelle ———
+if "confirm_clear" not in st.session_state:
+    st.session_state.confirm_clear = False
 
-if "confirm_add" not in st.session_state:
-    st.session_state.confirm_add = False
+def show_clear_confirmation():
+    st.session_state.confirm_clear = True
 
-if "confirm_delete" not in st.session_state:
-    st.session_state.confirm_delete = False
-
-if st.button("➕ Zeile hinzufügen"):
-    if st.session_state.confirm_add:
-        new_row = pd.DataFrame([["", "", ""]], columns=cols)
-        st.session_state.df = pd.concat([st.session_state.df, new_row], ignore_index=True)
-        st.session_state.confirm_add = False
-        st.success("✅ Neue Zeile hinzugefügt.")
-    else:
-        show_confirmation("hinzufügen")
-        st.warning("📢 Bestätige, ob du eine neue Zeile hinzufügen möchtest.")
-
-if st.button("➖ Letzte Zeile löschen"):
-    if len(st.session_state.df) > 1:
-        if st.session_state.confirm_delete:
-            st.session_state.df = st.session_state.df[:-1]
-            st.session_state.confirm_delete = False
-            st.success("✅ Letzte Zeile wurde gelöscht.")
-        else:
-            show_confirmation("löschen")
-            st.warning("📢 Bestätige, ob du die letzte Zeile löschen möchtest.")
-    else:
-        st.warning("⚠️ Es gibt nur eine Zeile in der Tabelle und diese kann nicht gelöscht werden.")
-
-# ——— Tabelle leeren ———
 if st.button("🧹 Tabelle leeren"):
-    st.session_state.df = pd.DataFrame([["", "", ""]], columns=cols)
-    st.success("✅ Tabelle wurde erfolgreich geleert.")
-
-# ——— Validierung ———
-errors = []
-missing_cols = [col for col in cols if col not in edited.columns]
-if missing_cols:
-    st.error(f"❌ Fehlende Spalten in der Tabelle: {', '.join(missing_cols)}")
-else:
-    for i, row in edited.iterrows():
-        for column in cols:
-            text = str(row[column])
-            pos = find_whitespace_position(text)
-            if pos != -1:
-                errors.append(f"Zeile {i+1}, Spalte '{column}': Leerzeichen an Position {pos+1}.")
-
-if errors:
-    st.error("❌ Bitte korrigiere die folgenden Eingaben, bevor du fortfährst:")
-    for msg in errors:
-        st.markdown(f"- {msg}")
+    if st.session_state.confirm_clear:
+        # Wenn der Benutzer auf "Ja" klickt, wird die Tabelle geleert
+        st.session_state.df = pd.DataFrame([["", "", ""]], columns=cols)
+        st.session_state.confirm_clear = False
+        st.success("✅ Tabelle wurde erfolgreich geleert.")
+    else:
+        # Wenn der Benutzer auf "Tabelle leeren" klickt, wird die Bestätigung angezeigt
+        show_clear_confirmation()
+        st.warning("📢 Bestätige, ob du die Tabelle wirklich leeren möchtest.")
 
 # ——— CSV Export ———
-if st.button("📥 CSV erstellen und herunterladen", disabled=bool(errors or missing_cols)):
+if st.button("📥 CSV erstellen und herunterladen"):
     buf = io.StringIO()
     writer = csv.writer(buf)
     for _, row in edited.iterrows():
