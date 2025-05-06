@@ -28,7 +28,7 @@ if not st.session_state.logged_in:
     login()
     st.stop()
 
-# ——— App-Einstellungen ———
+# ——— App-Inhalt nach Login ———
 st.set_page_config(page_title="CSV-Telefon-Generator", layout="wide")
 col1, col2 = st.columns([1, 4])
 with col1:
@@ -48,7 +48,7 @@ if st.sidebar.button("🔄 Alles zurücksetzen"):
 
 # ——— Hilfsfunktionen ———
 def format_phone(phone):
-    return "0" + phone if phone.startswith("0") else phone
+    return "0" + phone if not phone.startswith("0") else phone
 
 def replace_umlauts(text):
     for o, r in {"ä": "ae", "ö": "oe", "ü": "ue", "Ä": "Ae", "Ö": "Oe", "Ü": "Ue", "ß": "ss"}.items():
@@ -65,30 +65,30 @@ if "df" not in st.session_state:
     st.session_state.df = pd.DataFrame([["", "", ""]], columns=cols)
 
 # ——— Hinweisbox ———
-with st.container():
-    st.markdown(
-        '<div style="background-color: #fffbe6; padding: 10px; border-left: 6px solid #f1c40f; margin-bottom: 15px;">'
-        '💡 <strong>Hinweis:</strong> Vorname, Nachname und Telefonnummer dürfen keine Leerzeichen enthalten. '
-        'Verwende stattdessen Bindestriche (-) oder Unterstriche (_).'
-        '</div>',
-        unsafe_allow_html=True
-    )
+st.markdown(
+    '<div style="background-color: #fffbe6; padding: 10px; border-left: 6px solid #f1c40f; margin-bottom: 15px;">'
+    '💡 <strong>Hinweis:</strong> Vorname, Nachname und Telefonnummer dürfen keine Leerzeichen enthalten. '
+    'Verwende stattdessen Bindestriche (-) oder Unterstriche (_).'
+    '</div>',
+    unsafe_allow_html=True
+)
 
-# ——— CSV Upload mit Encoding-Erkennung ———
+# ——— CSV Upload ———
 uploaded_file = st.file_uploader("📄 CSV-Datei hochladen", type=["csv"], key="csv_upload")
 if uploaded_file:
     try:
-        df = pd.read_csv(uploaded_file, encoding="utf-8")
+        df = pd.read_csv(uploaded_file, encoding='utf-8')
+        st.session_state.df = df
+        st.success("✅ CSV-Datei erfolgreich hochgeladen!")
     except UnicodeDecodeError:
         try:
-            df = pd.read_csv(uploaded_file, encoding="latin1")
+            df = pd.read_csv(uploaded_file, encoding='latin1')
+            st.session_state.df = df
+            st.success("✅ CSV-Datei erfolgreich mit ISO-8859-1 (latin1) geöffnet!")
         except Exception as e:
-            st.error(f"❌ Fehler beim Lesen der CSV-Datei: {e}")
-            st.stop()
-    st.session_state.df = df
-    st.success("✅ CSV-Datei erfolgreich hochgeladen!")
+            st.error(f"❌ Fehler beim Laden der CSV-Datei: {e}")
 
-# ——— Word oder Excel Upload ———
+# ——— Word/Excel Upload ———
 st.write("## 📂 Word/Excel-Datei hochladen")
 upload_doc = st.file_uploader("Word (.docx) oder Excel (.xlsx)", type=["docx", "xlsx"], key="file_upload_docx_xlsx")
 if upload_doc:
@@ -108,10 +108,11 @@ if upload_doc:
                 if len(parts) >= 3:
                     vorname, nachname, telefon = parts[0], parts[1], parts[2]
                     new_rows.append([vorname, nachname, telefon])
+
         if new_rows:
             df_new = pd.DataFrame(new_rows, columns=cols)
             st.session_state.df = pd.concat([st.session_state.df, df_new], ignore_index=True)
-            st.success(f"✅ {len(new_rows)} Zeile(n) aus Datei übernommen.")
+            st.success(f"✅ {len(new_rows)} Zeile(n) aus Datei erfolgreich übernommen.")
         else:
             st.info("ℹ️ Keine gültigen Daten erkannt.")
     except Exception as e:
@@ -136,21 +137,24 @@ if st.button("➖ Letzte Zeile löschen"):
 
 # ——— Validierung ———
 errors = []
-for i, row in edited.iterrows():
-    for column in cols:
-        text = str(row[column])
-        pos = find_whitespace_position(text)
-        if pos != -1:
-            errors.append(f"Zeile {i+1}, Spalte '{column}': Leerzeichen an Position {pos+1}.")
+missing_cols = [col for col in cols if col not in edited.columns]
+if missing_cols:
+    st.error(f"❌ Fehlende Spalten in der Tabelle: {', '.join(missing_cols)}")
+else:
+    for i, row in edited.iterrows():
+        for column in cols:
+            text = str(row[column])
+            pos = find_whitespace_position(text)
+            if pos != -1:
+                errors.append(f"Zeile {i+1}, Spalte '{column}': Leerzeichen an Position {pos+1}.")
 
-# ——— Fehleranzeige ———
 if errors:
-    st.error("❌ Bitte korrigiere die folgenden Eingaben:")
+    st.error("❌ Bitte korrigiere die folgenden Eingaben, bevor du fortfährst:")
     for msg in errors:
         st.markdown(f"- {msg}")
 
 # ——— CSV Export ———
-if st.button("📥 CSV erstellen und herunterladen", disabled=bool(errors)):
+if st.button("📥 CSV erstellen und herunterladen", disabled=bool(errors or missing_cols)):
     buf = io.StringIO()
     writer = csv.writer(buf)
     for _, row in edited.iterrows():
@@ -174,8 +178,8 @@ if st.button("📥 CSV erstellen und herunterladen", disabled=bool(errors)):
 st.markdown(
     """
     <style>
-    .css-18e3th9 { display: none; }
-    .css-1kyxreq { display: none; }
+    .css-18e3th9 { display: none; }  /* Vollbild-Button */
+    .css-1kyxreq { display: none; }  /* Auge-Icon Passwortfeld */
     </style>
     """,
     unsafe_allow_html=True
