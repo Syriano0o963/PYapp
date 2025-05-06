@@ -76,7 +76,7 @@ with st.container():
 st.write("## Eingabefelder")
 edited = st.data_editor(
     st.session_state.df,
-    num_rows="dynamic",
+    num_rows="dynamic",  # Beibehalten der dynamischen Zeilenanzahl
     key="editor"
 )
 
@@ -116,3 +116,15 @@ if st.button("📥 CSV erstellen und herunterladen", disabled=bool(errors)):
         file_name=filename,
         mime="text/csv"
     )
+
+# ——— Custom CSS zur UI-Anpassung (Vollbild-Button und Auge-Icon ausblenden) ———
+st.markdown(
+    """
+    <style>
+    /* Verstecke den Vollbild-Button und das Auge-Icon in der oberen rechten Ecke */
+    .css-18e3th9 { display: none; } /* Vollbild-Button */
+    .css-1kyxreq { display: none; } /* Auge-Icon für das Passwortfeld */
+    </style>
+    """,
+    unsafe_allow_html=True
+)
