@@ -111,14 +111,27 @@ edited = st.data_editor(
     key="editor"
 )
 
-# ——— Zeilen hinzufügen/löschen ———
+# ——— Zeilen hinzufügen/löschen mit Bestätigung ———
+def confirm_action(action):
+    confirmation = st.radio(f"💬 Bist du sicher, dass du diese Zeile {action} möchtest?", ["Ja", "Nein"], index=1)
+    return confirmation == "Ja"
+
 if st.button("➕ Zeile hinzufügen"):
-    new_row = pd.DataFrame([["", "", ""]], columns=cols)
-    st.session_state.df = pd.concat([st.session_state.df, new_row], ignore_index=True)
+    if all(edited.iloc[-1] == ""):
+        st.warning("⚠️ Die letzte Zeile ist leer und kann nicht hinzugefügt werden.")
+    else:
+        if confirm_action("hinzufügen"):
+            new_row = pd.DataFrame([["", "", ""]], columns=cols)
+            st.session_state.df = pd.concat([st.session_state.df, new_row], ignore_index=True)
+            st.success("✅ Neue Zeile wurde hinzugefügt!")
 
 if st.button("➖ Letzte Zeile löschen"):
-    if len(st.session_state.df) > 1:
-        st.session_state.df = st.session_state.df[:-1]
+    if len(st.session_state.df) > 1 and not all(edited.iloc[-1] == ""):
+        if confirm_action("löschen"):
+            st.session_state.df = st.session_state.df[:-1]
+            st.success("✅ Letzte Zeile wurde gelöscht!")
+    else:
+        st.warning("⚠️ Die letzte Zeile ist leer und kann nicht gelöscht werden.")
 
 # ——— Tabelle leeren ———
 if st.button("🧹 Tabelle leeren"):
