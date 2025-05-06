@@ -112,24 +112,6 @@ edited = st.data_editor(
     key="editor"
 )
 
-# ——— Bestätigung zum Leeren der Tabelle ———
-if "confirm_clear" not in st.session_state:
-    st.session_state.confirm_clear = False
-
-def show_clear_confirmation():
-    st.session_state.confirm_clear = True
-
-if st.button("🧹 Tabelle leeren"):
-    if st.session_state.confirm_clear:
-        # Wenn der Benutzer auf "Ja" klickt, wird die Tabelle geleert
-        st.session_state.df = pd.DataFrame([["", "", ""]], columns=cols)
-        st.session_state.confirm_clear = False
-        st.success("✅ Tabelle wurde erfolgreich geleert.")
-    else:
-        # Wenn der Benutzer auf "Tabelle leeren" klickt, wird die Bestätigung angezeigt
-        show_clear_confirmation()
-        st.warning("📢 Bestätige, ob du die Tabelle wirklich leeren möchtest.")
-
 # ——— CSV Export ———
 if st.button("📥 CSV erstellen und herunterladen"):
     buf = io.StringIO()
