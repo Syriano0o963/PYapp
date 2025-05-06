@@ -1,7 +1,8 @@
 import streamlit as st
 import csv, io
 import pandas as pd
-from datetime import datetime  # ✅ Neu für Zeitstempel im Dateinamen
+from datetime import datetime
+import re
 
 # ——— Benutzer-Credentials aus Geheimnissen laden ———
 CREDENTIALS = st.secrets.get("credentials", {})
@@ -53,31 +54,59 @@ def replace_umlauts(text):
         text = text.replace(o, r)
     return text
 
+def has_whitespace(text):
+    return bool(re.search(r"\s", text))  # prüft auf beliebige Leerzeichen, Tabs, etc.
+
 # ——— Initialisierung ———
 cols = ["Vorname", "Nachname", "Telefonnummer"]
 if "df" not in st.session_state:
     st.session_state.df = pd.DataFrame([["", "", ""]], columns=cols)
 
+# ——— Hinweisbox mit Glühbirne ———
+with st.container():
+    st.markdown(
+        '<div style="background-color: #fffbe6; padding: 10px; border-left: 6px solid #f1c40f; margin-bottom: 15px;">'
+        '💡 <strong>Hinweis:</strong> Vorname, Nachname und Telefonnummer dürfen keine Leerzeichen enthalten. '
+        'Verwende stattdessen Bindestriche (-) oder Unterstriche (_).'
+        '</div>',
+        unsafe_allow_html=True
+    )
+
 # ——— Interaktive Tabelle ———
 st.write("## Eingabefelder")
 edited = st.data_editor(
     st.session_state.df,
-    num_rows="dynamic",
+    num_rows="dynamic",  # Beibehalten der dynamischen Zeilenanzahl
     key="editor"
 )
 
+# ——— Validierung ———
+errors = []
+for i, row in edited.iterrows():
+    if has_whitespace(str(row["Vorname"])):
+        errors.append(f"Zeile {i+1}: Vorname darf keine Leerzeichen enthalten.")
+    if has_whitespace(str(row["Nachname"])):
+        errors.append(f"Zeile {i+1}: Nachname darf keine Leerzeichen enthalten.")
+    if has_whitespace(str(row["Telefonnummer"])):
+        errors.append(f"Zeile {i+1}: Telefonnummer darf keine Leerzeichen enthalten.")
+
+# ——— Fehleranzeige ———
+if errors:
+    st.error("❌ Bitte korrigiere die folgenden Eingaben, bevor du fortfährst:")
+    for msg in errors:
+        st.markdown(f"- {msg}")
+
 # ——— CSV Export mit Zeitstempel ———
-if st.button("📥 CSV erstellen und herunterladen"):
+if st.button("📥 CSV erstellen und herunterladen", disabled=bool(errors)):
     buf = io.StringIO()
     writer = csv.writer(buf)
     for _, row in edited.iterrows():
-        vor = replace_umlauts(row["Vorname"])
-        nah = replace_umlauts(row["Nachname"])
+        vor = replace_umlauts(str(row["Vorname"]))
+        nah = replace_umlauts(str(row["Nachname"]))
         tel = format_phone(str(row["Telefonnummer"]))
         writer.writerow([vor, nah] + [""] * 15 + ["1", "4", "1", tel, "-1", "V2"])
     st.success("✅ CSV-Datei erfolgreich erstellt!")
 
-    # ✅ Dateiname mit aktuellem Datum und Uhrzeit
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
     filename = f"Telefonbuch-{timestamp}.csv"
 
@@ -87,3 +116,15 @@ if st.button("📥 CSV erstellen und herunterladen"):
         file_name=filename,
         mime="text/csv"
     )
+
+# ——— Custom CSS zur UI-Anpassung (Vollbild-Button und Auge-Icon ausblenden) ———
+st.markdown(
+    """
+    <style>
+    /* Verstecke den Vollbild-Button und das Auge-Icon in der oberen rechten Ecke */
+    .css-18e3th9 { display: none; } /* Vollbild-Button */
+    .css-1kyxreq { display: none; } /* Auge-Icon für das Passwortfeld */
+    </style>
+    """,
+    unsafe_allow_html=True
+)
