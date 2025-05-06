@@ -111,27 +111,42 @@ edited = st.data_editor(
     key="editor"
 )
 
-# ——— Zeilen hinzufügen/löschen mit Bestätigung ———
-def confirm_action(action):
-    confirmation = st.radio(f"💬 Bist du sicher, dass du diese Zeile {action} möchtest?", ["Ja", "Nein"], index=1)
-    return confirmation == "Ja"
+# ——— Bestätigung zum Hinzufügen oder Löschen ———
+def show_confirmation(action):
+    if action == "hinzufügen":
+        st.session_state.confirm_add = True
+        st.session_state.confirm_delete = False
+    elif action == "löschen":
+        st.session_state.confirm_delete = True
+        st.session_state.confirm_add = False
+
+if "confirm_add" not in st.session_state:
+    st.session_state.confirm_add = False
+
+if "confirm_delete" not in st.session_state:
+    st.session_state.confirm_delete = False
 
 if st.button("➕ Zeile hinzufügen"):
-    if all(edited.iloc[-1] == ""):
-        st.warning("⚠️ Die letzte Zeile ist leer und kann nicht hinzugefügt werden.")
+    if st.session_state.confirm_add:
+        new_row = pd.DataFrame([["", "", ""]], columns=cols)
+        st.session_state.df = pd.concat([st.session_state.df, new_row], ignore_index=True)
+        st.session_state.confirm_add = False
+        st.success("✅ Neue Zeile hinzugefügt.")
     else:
-        if confirm_action("hinzufügen"):
-            new_row = pd.DataFrame([["", "", ""]], columns=cols)
-            st.session_state.df = pd.concat([st.session_state.df, new_row], ignore_index=True)
-            st.success("✅ Neue Zeile wurde hinzugefügt!")
+        show_confirmation("hinzufügen")
+        st.warning("📢 Bestätige, ob du eine neue Zeile hinzufügen möchtest.")
 
 if st.button("➖ Letzte Zeile löschen"):
-    if len(st.session_state.df) > 1 and not all(edited.iloc[-1] == ""):
-        if confirm_action("löschen"):
+    if len(st.session_state.df) > 1:
+        if st.session_state.confirm_delete:
             st.session_state.df = st.session_state.df[:-1]
-            st.success("✅ Letzte Zeile wurde gelöscht!")
+            st.session_state.confirm_delete = False
+            st.success("✅ Letzte Zeile wurde gelöscht.")
+        else:
+            show_confirmation("löschen")
+            st.warning("📢 Bestätige, ob du die letzte Zeile löschen möchtest.")
     else:
-        st.warning("⚠️ Die letzte Zeile ist leer und kann nicht gelöscht werden.")
+        st.warning("⚠️ Es gibt nur eine Zeile in der Tabelle und diese kann nicht gelöscht werden.")
 
 # ——— Tabelle leeren ———
 if st.button("🧹 Tabelle leeren"):
