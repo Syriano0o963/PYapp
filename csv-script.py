@@ -54,8 +54,9 @@ def replace_umlauts(text):
         text = text.replace(o, r)
     return text
 
-def has_whitespace(text):
-    return bool(re.search(r"\s", text))  # prüft auf beliebige Leerzeichen, Tabs, etc.
+def find_whitespace_position(text):
+    match = re.search(r"\s", text)  # prüft auf Leerzeichen
+    return match.start() if match else -1  # Gibt die Position des ersten Leerzeichens zurück, sonst -1
 
 # ——— Initialisierung ———
 cols = ["Vorname", "Nachname", "Telefonnummer"]
@@ -83,12 +84,11 @@ edited = st.data_editor(
 # ——— Validierung ———
 errors = []
 for i, row in edited.iterrows():
-    if has_whitespace(str(row["Vorname"])):
-        errors.append(f"Zeile {i+1}: Vorname darf keine Leerzeichen enthalten.")
-    if has_whitespace(str(row["Nachname"])):
-        errors.append(f"Zeile {i+1}: Nachname darf keine Leerzeichen enthalten.")
-    if has_whitespace(str(row["Telefonnummer"])):
-        errors.append(f"Zeile {i+1}: Telefonnummer darf keine Leerzeichen enthalten.")
+    for column in ["Vorname", "Nachname", "Telefonnummer"]:
+        text = str(row[column])
+        whitespace_position = find_whitespace_position(text)
+        if whitespace_position != -1:  # Wenn ein Leerzeichen gefunden wurde
+            errors.append(f"Zeile {i+1}, Spalte '{column}': Leerzeichen an Position {whitespace_position+1}.")
 
 # ——— Fehleranzeige ———
 if errors:
