@@ -77,18 +77,19 @@ uploaded_file = st.file_uploader("Oder lade eine bestehende CSV-Datei hoch:", ty
 if uploaded_file:
     try:
         df_uploaded = pd.read_csv(uploaded_file, header=None, sep=",", quotechar='"', skipinitialspace=True)
-        if df_uploaded.shape[1] >= 20:
+        if df_uploaded.shape[1] >= 21:
             df_clean = pd.DataFrame({
                 "Vorname": df_uploaded.iloc[:, 0],
                 "Nachname": df_uploaded.iloc[:, 1],
-                "Telefonnummer": df_uploaded.iloc[:, 18]
+                "Telefonnummer": df_uploaded.iloc[:, 20]  # ← Richtige Spalte!
             })
             st.session_state.df = df_clean
             st.success("✅ CSV erfolgreich importiert und geladen!")
         else:
-            st.error("❌ Die CSV-Datei hat nicht das erwartete Format (mind. 20 Spalten).")
+            st.error("❌ Die CSV-Datei hat nicht das erwartete Format (mind. 21 Spalten).")
     except Exception as e:
         st.error(f"❌ Fehler beim Einlesen der Datei: {e}")
+
 
 # ——— Interaktive Tabelle ———
 st.write("## Eingabefelder")
