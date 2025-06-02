@@ -17,12 +17,9 @@ def login():
             if username in CREDENTIALS and CREDENTIALS[username] == password:
                 st.session_state.logged_in = True
                 st.session_state.user = username
-                st.success(f"Willkommen, {username}!")
                 st.experimental_rerun()  # Seite neu laden, damit login sofort aktiv ist
             else:
                 st.error("Ungültiger Benutzername oder Passwort.")
-
-
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
@@ -30,6 +27,9 @@ if "logged_in" not in st.session_state:
 if not st.session_state.logged_in:
     login()
     st.stop()
+else:
+    st.success(f"Willkommen, {st.session_state.user}!")
+
 
 # ——— App-Inhalt nach Login ———
 st.set_page_config(page_title="CSV-Telefon-Generator", layout="wide")
