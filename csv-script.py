@@ -46,9 +46,6 @@ if st.sidebar.button("🔄 Alles zurücksetzen"):
     st.rerun()
 
 # ——— Hilfsfunktionen ———
-def format_phone(phone):
-    return "0" + phone if phone.startswith("0") else phone
-
 def replace_umlauts(text):
     for o, r in {"ä": "ae", "ö": "oe", "ü": "ue", "Ä": "Ae", "Ö": "Oe", "Ü": "Ue", "ß": "ss"}.items():
         text = text.replace(o, r)
@@ -62,7 +59,7 @@ cols = ["Vorname", "Nachname", "Telefonnummer"]
 if "df" not in st.session_state:
     st.session_state.df = pd.DataFrame([["", "", ""]], columns=cols)
 
-# ——— Hinweisbox mit Glühbirne ———
+# ——— Hinweisbox ———
 with st.container():
     st.markdown(
         '<div style="background-color: #fffbe6; padding: 10px; border-left: 6px solid #f1c40f; margin-bottom: 15px;">'
@@ -76,12 +73,19 @@ with st.container():
 uploaded_file = st.file_uploader("Oder lade eine bestehende CSV-Datei hoch:", type=["csv"])
 if uploaded_file:
     try:
-        df_uploaded = pd.read_csv(uploaded_file, header=None, sep=",", quotechar='"', skipinitialspace=True)
+        df_uploaded = pd.read_csv(
+            uploaded_file,
+            header=None,
+            sep=",",
+            quotechar='"',
+            skipinitialspace=True,
+            dtype=str  # Telefonnummer bleibt String
+        )
         if df_uploaded.shape[1] >= 21:
             df_clean = pd.DataFrame({
                 "Vorname": df_uploaded.iloc[:, 0],
                 "Nachname": df_uploaded.iloc[:, 1],
-                "Telefonnummer": df_uploaded.iloc[:, 20]  # ← Richtige Spalte!
+                "Telefonnummer": df_uploaded.iloc[:, 20]  # ← Richtige Spalte für Telefonnummer
             })
             st.session_state.df = df_clean
             st.success("✅ CSV erfolgreich importiert und geladen!")
@@ -89,7 +93,6 @@ if uploaded_file:
             st.error("❌ Die CSV-Datei hat nicht das erwartete Format (mind. 21 Spalten).")
     except Exception as e:
         st.error(f"❌ Fehler beim Einlesen der Datei: {e}")
-
 
 # ——— Interaktive Tabelle ———
 st.write("## Eingabefelder")
@@ -115,15 +118,15 @@ if errors:
     for msg in errors:
         st.markdown(f"- {msg}")
 
-# ——— CSV Export mit Zeitstempel ———
+# ——— CSV Export ———
 if st.button("📥 CSV erstellen und herunterladen", disabled=bool(errors)):
     buf = io.StringIO()
     writer = csv.writer(buf)
     for _, row in edited.iterrows():
         vor = replace_umlauts(str(row["Vorname"]))
-        nah = replace_umlauts(str(row["Nachname"]))
-        tel = format_phone(str(row["Telefonnummer"]))
-        writer.writerow([vor, nah] + [""] * 15 + ["1", "4", "1", tel, "-1", "V2"])
+        nach = replace_umlauts(str(row["Nachname"]))
+        tel = str(row["Telefonnummer"]).strip()  # Keine Null entfernen!
+        writer.writerow([vor, nach] + [""] * 15 + ["1", "4", "1", tel, "-1", "V2"])
     st.success("✅ CSV-Datei erfolgreich erstellt!")
 
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
@@ -136,12 +139,12 @@ if st.button("📥 CSV erstellen und herunterladen", disabled=bool(errors)):
         mime="text/csv"
     )
 
-# ——— Custom CSS zur UI-Anpassung ———
+# ——— CSS zur UI-Anpassung ———
 st.markdown(
     """
     <style>
     .css-18e3th9 { display: none; } /* Vollbild-Button */
-    .css-1kyxreq { display: none; } /* Auge-Icon beim Passwortfeld */
+    .css-1kyxreq { display: none; } /* Auge beim Passwort */
     </style>
     """,
     unsafe_allow_html=True
