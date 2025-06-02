@@ -6,14 +6,14 @@ import re
 
 # ——— Benutzer-Credentials aus Geheimnissen laden ———
 CREDENTIALS = st.secrets.get("credentials", {})
-
 def login():
     st.title("🔒 Login")
-    with st.form(key="login_form"):
+    with st.form("login_form"):
         username = st.text_input("Benutzername", key="login_usr")
         password = st.text_input("Passwort", type="password", key="login_pwd")
-        submit_button = st.form_submit_button("Anmelden")
-        if submit_button:
+        submit = st.form_submit_button("Anmelden")
+
+        if submit:
             if username in CREDENTIALS and CREDENTIALS[username] == password:
                 st.session_state.logged_in = True
                 st.session_state.user = username
@@ -29,7 +29,6 @@ if not st.session_state.logged_in:
     st.stop()
 else:
     st.success(f"Willkommen, {st.session_state.user}!")
-
 
 # ——— App-Inhalt nach Login ———
 st.set_page_config(page_title="CSV-Telefon-Generator", layout="wide")
