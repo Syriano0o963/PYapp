@@ -8,27 +8,25 @@ import re
 CREDENTIALS = st.secrets.get("credentials", {})
 def login():
     st.title("🔒 Login")
-    with st.form("login_form"):
-        username = st.text_input("Benutzername", key="login_usr")
-        password = st.text_input("Passwort", type="password", key="login_pwd")
-        submit = st.form_submit_button("Anmelden")
+    username = st.text_input("Benutzername", key="login_usr")
+    password = st.text_input("Passwort", type="password", key="login_pwd")
+    # Login auch per Enter möglich durch diese Variable
+    if st.button("Anmelden") or (st.session_state.get("login_usr") and st.session_state.get("login_pwd") and st.session_state.get("login_pressed")):
+        if username in CREDENTIALS and CREDENTIALS[username] == password:
+            st.session_state.logged_in = True
+            st.session_state.user = username
+            st.experimental_rerun()  # Seite neu laden, damit login sofort aktiv ist
+        else:
+            st.error("Ungültiger Benutzername oder Passwort.")
 
-        if submit:
-            if username in CREDENTIALS and CREDENTIALS[username] == password:
-                st.session_state.logged_in = True
-                st.session_state.user = username
-                st.experimental_rerun()  # Seite neu laden, damit login sofort aktiv ist
-            else:
-                st.error("Ungültiger Benutzername oder Passwort.")
-
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
+# Damit Enter funktioniert, merken wir uns hier, wenn man gedrückt hat:
+if "login_pressed" not in st.session_state:
+    st.session_state.login_pressed = False
 
 if not st.session_state.logged_in:
     login()
     st.stop()
-else:
-    st.success(f"Willkommen, {st.session_state.user}!")
+
 
 # ——— App-Inhalt nach Login ———
 st.set_page_config(page_title="CSV-Telefon-Generator", layout="wide")
