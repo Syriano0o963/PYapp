@@ -10,17 +10,15 @@ CREDENTIALS = st.secrets.get("credentials", {})
 # ——— Authentifizierung ———
 def login():
     st.title("🔒 Login")
-    with st.form("login_form"):
-        username = st.text_input("Benutzername", key="login_usr")
-        password = st.text_input("Passwort", type="password", key="login_pwd")
-        submitted = st.form_submit_button("Anmelden")
-        if submitted:
-            if username in CREDENTIALS and CREDENTIALS[username] == password:
-                st.session_state.logged_in = True
-                st.session_state.user = username
-                st.experimental_rerun()  # Seite sofort neu laden
-            else:
-                st.error("Ungültiger Benutzername oder Passwort.")
+    username = st.text_input("Benutzername", key="login_usr")
+    password = st.text_input("Passwort", type="password", key="login_pwd")
+    if st.button("Anmelden"):
+        if username in CREDENTIALS and CREDENTIALS[username] == password:
+            st.session_state.logged_in = True
+            st.session_state.user = username
+            st.success(f"Willkommen, {username}!")
+        else:
+            st.error("Ungültiger Benutzername oder Passwort.")
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
@@ -45,7 +43,7 @@ if st.sidebar.button("🔄 Alles zurücksetzen"):
         if key not in ("logged_in", "user"):
             del st.session_state[key]
     st.session_state.logged_in = False
-    st.experimental_rerun()
+    st.rerun()
 
 # ——— Hilfsfunktionen ———
 def format_phone(phone):
