@@ -79,7 +79,7 @@ if uploaded_file:
             df_clean = pd.DataFrame({
                 "Vorname": df_uploaded.iloc[:, 0],
                 "Nachname": df_uploaded.iloc[:, 1],
-                "Telefonnummer": df_uploaded.iloc[:, 18]
+                "Telefonnummer": df_uploaded.iloc[:, 19]
             })
             st.session_state.df = df_clean
             st.success("✅ CSV erfolgreich importiert und geladen!")
