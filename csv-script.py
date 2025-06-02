@@ -76,7 +76,7 @@ with st.container():
 uploaded_file = st.file_uploader("Oder lade eine bestehende CSV-Datei hoch:", type=["csv"])
 if uploaded_file:
     try:
-        df_uploaded = pd.read_csv(uploaded_file, header=None)
+        df_uploaded = pd.read_csv(uploaded_file, header=None, sep=",", quotechar='"', skipinitialspace=True)
         if df_uploaded.shape[1] >= 20:
             df_clean = pd.DataFrame({
                 "Vorname": df_uploaded.iloc[:, 0],
