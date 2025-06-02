@@ -6,9 +6,11 @@ import re
 
 # ——— Benutzer-Credentials aus Geheimnissen laden ———
 CREDENTIALS = st.secrets.get("credentials", {})
+
+# ——— Authentifizierung ———
 def login():
     st.title("🔒 Login")
-    with st.form("login_form", clear_on_submit=False):
+    with st.form("login_form"):
         username = st.text_input("Benutzername", key="login_usr")
         password = st.text_input("Passwort", type="password", key="login_pwd")
         submitted = st.form_submit_button("Anmelden")
@@ -16,7 +18,7 @@ def login():
             if username in CREDENTIALS and CREDENTIALS[username] == password:
                 st.session_state.logged_in = True
                 st.session_state.user = username
-                st.experimental_rerun()
+                st.experimental_rerun()  # Seite sofort neu laden
             else:
                 st.error("Ungültiger Benutzername oder Passwort.")
 
@@ -26,8 +28,6 @@ if "logged_in" not in st.session_state:
 if not st.session_state.logged_in:
     login()
     st.stop()
-
-
 
 # ——— App-Inhalt nach Login ———
 st.set_page_config(page_title="CSV-Telefon-Generator", layout="wide")
@@ -45,7 +45,7 @@ if st.sidebar.button("🔄 Alles zurücksetzen"):
         if key not in ("logged_in", "user"):
             del st.session_state[key]
     st.session_state.logged_in = False
-    st.rerun()
+    st.experimental_rerun()
 
 # ——— Hilfsfunktionen ———
 def format_phone(phone):
