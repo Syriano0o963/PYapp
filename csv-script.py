@@ -18,8 +18,10 @@ def login():
                 st.session_state.logged_in = True
                 st.session_state.user = username
                 st.success(f"Willkommen, {username}!")
+                st.experimental_rerun()  # Seite neu laden, damit login sofort aktiv ist
             else:
                 st.error("Ungültiger Benutzername oder Passwort.")
+
 
 
 if "logged_in" not in st.session_state:
