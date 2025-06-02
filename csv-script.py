@@ -34,7 +34,7 @@ with col1:
     st.image("logo-without-bg.png", width=150)
 with col2:
     st.markdown("# 📞Telefonbuch-Generator")
-    st.markdown("Gib die Namen und Telefonnummern ein, und lade deine CSV herunter.")
+    st.markdown("Gib die Namen und Telefonnummern ein, lade eine bestehende CSV hoch oder exportiere dein Telefonbuch.")
 
 # ——— Sidebar-Steuerung ———
 st.sidebar.header("Steuerung")
@@ -55,7 +55,7 @@ def replace_umlauts(text):
     return text
 
 def has_whitespace(text):
-    return bool(re.search(r"\s", text))  # prüft auf beliebige Leerzeichen, Tabs, etc.
+    return bool(re.search(r"\s", text))
 
 # ——— Initialisierung ———
 cols = ["Vorname", "Nachname", "Telefonnummer"]
@@ -72,11 +72,29 @@ with st.container():
         unsafe_allow_html=True
     )
 
+# ——— CSV-Upload ———
+uploaded_file = st.file_uploader("Oder lade eine bestehende CSV-Datei hoch:", type=["csv"])
+if uploaded_file:
+    try:
+        df_uploaded = pd.read_csv(uploaded_file, header=None)
+        if df_uploaded.shape[1] >= 20:
+            df_clean = pd.DataFrame({
+                "Vorname": df_uploaded.iloc[:, 0],
+                "Nachname": df_uploaded.iloc[:, 1],
+                "Telefonnummer": df_uploaded.iloc[:, 18]
+            })
+            st.session_state.df = df_clean
+            st.success("✅ CSV erfolgreich importiert und geladen!")
+        else:
+            st.error("❌ Die CSV-Datei hat nicht das erwartete Format (mind. 20 Spalten).")
+    except Exception as e:
+        st.error(f"❌ Fehler beim Einlesen der Datei: {e}")
+
 # ——— Interaktive Tabelle ———
 st.write("## Eingabefelder")
 edited = st.data_editor(
     st.session_state.df,
-    num_rows="dynamic",  # Beibehalten der dynamischen Zeilenanzahl
+    num_rows="dynamic",
     key="editor"
 )
 
@@ -117,13 +135,12 @@ if st.button("📥 CSV erstellen und herunterladen", disabled=bool(errors)):
         mime="text/csv"
     )
 
-# ——— Custom CSS zur UI-Anpassung (Vollbild-Button und Auge-Icon ausblenden) ———
+# ——— Custom CSS zur UI-Anpassung ———
 st.markdown(
     """
     <style>
-    /* Verstecke den Vollbild-Button und das Auge-Icon in der oberen rechten Ecke */
     .css-18e3th9 { display: none; } /* Vollbild-Button */
-    .css-1kyxreq { display: none; } /* Auge-Icon für das Passwortfeld */
+    .css-1kyxreq { display: none; } /* Auge-Icon beim Passwortfeld */
     </style>
     """,
     unsafe_allow_html=True
