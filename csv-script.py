@@ -43,6 +43,7 @@ if st.sidebar.button("🔄 Alles zurücksetzen"):
         if key not in ("logged_in", "user"):
             del st.session_state[key]
     st.session_state.logged_in = False
+    st.experimental_set_query_params(reset="1")
     st.rerun()
 
 # ——— Hilfsfunktionen ———
